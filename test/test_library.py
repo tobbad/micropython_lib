@@ -56,25 +56,33 @@ class TestGitCode(unittest.TestCase):
 
 class TestValidSoftware(unittest.TestCase):
 
+    def setUp(self):
+        self.dut = mp_board(fd=sys.stdout)
+
     def test_dirty_version(self):
-        ser_version = 'v1.7-237-g55773af-dirty'
+        ser_version = "MicroPython v1.7-237-g55773af-dirty on 2016-04-20; L476-DISCO with STM32L476"
         git_hash= '55773af311fe782dcaf8a366df426360bbe3a49e'
-        self.assertFalse(check_valid_software(git_hash, ser_version))
+        self.dut.mp_ver_str(ser_version)
+        print(self.dut)
+        self.assertFalse(self.dut.is_version_matching(git_hash))
 
     def test_novalid_version(self):
         ser_version = ''
         git_hash= '55773af311fe782dcaf8a366df426360bbe3a49e'
-        self.assertRaises(Exception, check_valid_software,git_hash, ser_version)
+        self.dut.mp_ver_str(ser_version)
+        self.assertRaises(Exception, self.dut.is_version_matching,git_hash)
 
     def test_non_matching_hash(self):
-        ser_version = 'v1.7-237-g55773af'
+        ser_version = "MicroPython fin_l4-6-g9b48fff on 2016-04-20; F4DISC with STM32F407"
         git_hash= '14b8969aca02e8e6da6a882a71345117c916a4eb'
-        self.assertFalse(check_valid_software(git_hash, ser_version))
+        self.dut.mp_ver_str(ser_version)
+        self.assertFalse(self.dut.is_version_matching(git_hash))
 
     def test_valid_version(self):
-        ser_version = 'v1.7-237-g55773af'
+        ser_version = "MicroPython v1.7-237-g55773af on 2016-04-20; L476-DISCO with STM32L476"
         git_hash= '55773af311fe782dcaf8a366df426360bbe3a49e'
-        self.assertTrue(check_valid_software(git_hash, ser_version))
+        self.dut.mp_ver_str(ser_version)
+        self.assertTrue(self.dut.is_version_matching(git_hash))
 
 class TestMicropythonSoftResetString(unittest.TestCase):
     mp_ser_str=[ "",

@@ -28,9 +28,52 @@ exportPrefix='ex_'
 board2chip={}
 board2chip['STM32F4DISC']='stm32f407'
 board2chip['STM32L476DISC']='stm32l476'
-tests=[
+tests={}
+tests['STM32F4DISC']=[
 ("Carrige return",'',''),
-("Hello world",'print("Hello world")',"Hello world")]
+("Hello world",['code://','print("Hello world")'],"Hello world"),
+("I2S communication",
+     ['code://',
+     "import pyb",
+     "resetPin = pyb.Pin('PD4', pyb.Pin.OUT_PP, pyb.Pin.PULL_NONE)",
+     "resetPin.high()",
+     "i2c = pyb.I2C(1,  pyb.I2C.MASTER, baudrate=100000)",
+     "res = i2c.scan()",
+     "print(res)",
+     "len(res) == 2"
+     ],
+'True')]
+tests['STM32L476DISC']=[
+("Carrige return",'',''),
+("Hello world",['code://','print("Hello world")'],"Hello world"),
+("I2C scan",
+     ['code://',
+     "import pyb",
+     "resetPin = pyb.Pin('PE3', pyb.Pin.OUT_PP, pyb.Pin.PULL_NONE)",
+     "resetPin.high()",
+     "i2c = pyb.I2C(1,  pyb.I2C.MASTER, baudrate=100000)",
+     "res = i2c.scan()",
+     "print(res)",
+     "len(res) == 2"
+     ],
+'True'),
+("I2C register 1",
+     ['code://',
+     "res = i2c.mem_read(1, 74, 0x01)",
+     "print(res)",
+     'res == "\x01"'
+     ],
+'True')]
+
+def do_the_test(board, branch):
+    print("Run %s test" % (board))
+    logFile = "%s.log" % (board)
+    fd = open(logFile, 'w')
+    gHash = git_checkout_branch(swGitRepoPath, branch, Usage, fd)
+    build_bin(swGitRepo, buildPath, board, Usage, fd)
+    stlink_deploy(swGitRepo, buildPath, board, board2chip[board], gHash, Usage, fd)
+    test_bin(board, board2chip[board], gHash, tests[board], fd)
+
 #######################################
 #
 # script functions
@@ -41,15 +84,9 @@ def ex_STM32F4DISC(*para):
     STM32F4DISC branch
     Test dma for spi, i2c on STM32F4DISC.
     '''
-    board = 'STM32F4DISC'
-    logFile = "%s.log" % (board)
-    fd = open(logFile, 'w')
     branch = scan_para(para, Usage)
-    gHash = git_checkout_branch(swGitRepoPath, branch, Usage, fd)
-    #build_bin(swGitRepo, buildPath, board, Usage, fd)
-    #stlink_deploy(swGitRepo, buildPath, board, board2chip[board], gHash, Usage, fd)
-    test_bin(board, board2chip[board], gHash, tests, sys.stdout)
-
+    board = 'STM32F4DISC'
+    do_the_test(board, branch)
 
 
 def ex_STM32L476DISC(*para):
@@ -57,7 +94,9 @@ def ex_STM32L476DISC(*para):
     STM32L476DISC branch
     Test dma for spi, i2c on STM32L476DISC.
     '''
-    print("Run STM32L476DISC")
+    branch = scan_para(para, Usage)
+    board = 'STM32L476DISC'
+    do_the_test(board, branch)
 
 def ex_all(*para):
     '''
@@ -65,7 +104,7 @@ def ex_all(*para):
     Test dma on all boards.
     '''
     ex_STM32F4DISC(para)
-    ex_STM32L476DISC(para)
+    #ex_STM32L476DISC(para)
 
 #######################################
 #
