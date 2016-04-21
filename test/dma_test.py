@@ -25,6 +25,9 @@ exportPrefix='ex_'
 # helper functions
 #
 #######################################
+board2chip={}
+board2chip['STM32F4DISC']='stm32f407'
+board2chip['STM32L476DISC']='stm32l476'
 #######################################
 #
 # script functions
@@ -35,12 +38,14 @@ def ex_STM32F4DISC(*para):
     STM32F4DISC branch
     Test dma for spi, i2c on STM32F4DISC.
     '''
-    serDev = ('','dev','ttyACM1')
+    board = 'STM32F4DISC'
+    logFile = "%s.log" % (board)
+    fd = open(logFile, 'w')
     branch = scan_para(para, Usage)
-    gHash = git_checkout_branch(swGitRepoPath, branch, Usage)
-    #build_bin(swGitRepo, buildPath, 'STM32F4DISC', Usage)
-    stlink_deploy(swGitRepo, buildPath, 'STM32F4DISC', 'stm32f407', gHash, Usage)
-    #test_bin()
+    gHash = git_checkout_branch(swGitRepoPath, branch, Usage, fd)
+    #build_bin(swGitRepo, buildPath, board, Usage, fd)
+    #stlink_deploy(swGitRepo, buildPath, board, board2chip[board], gHash, Usage, fd)
+    test_bin(board, board2chip[board], gHash)
 
 
 
