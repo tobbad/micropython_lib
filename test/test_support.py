@@ -176,31 +176,111 @@ def stlink_deploy(swGitRepo, buildSubPath, board, device, expected_git_hash, err
 #   Test code
 #
 ####################################################
-def get_serial_device(board, device, fd):
+def mp_extract_version_info(soft_reset_string):
     rePat = re.compile('MicroPython ([\S]+) on ([\S]+) ([\S]+) with ([\S]+)')
-    for dev in glob.glob('/dev/ttyACM*'):
-        ser = serial.Serial(dev, 115200, timeout=0.1)
-        if serial:
-            cond_log(fd, "Succeeded access port %s\n" % dev)
-        else:
-            cond_log(fd, "Failed access port %s\n" % dev)
-            continue
-        ser.write(b'\x04')
-        out = ser.read(1000).decode('latin-1').split("\r\n")
-        cond_log(fd, out)
-        if len(out)<3:
-            continue
-        mpid = out[3]
-        mtch = rePat.match(mpid)
+    if len(soft_reset_string)<3:
+        return None, None, None, None
+    mpid = soft_reset_string[3]
+    mtch = rePat.match(mpid)
+    if mtch:
         version, date, board, chip = mtch.groups()
         chip = chip.lower()
-        if chip == device:
+        return version, date, board, chip
+    else:
+       return None, None, None, None
+
+
+class mp_board():
+
+    ser_cr=b'\x0a\x0d'
+    ser_soft_reset = b'\x04'
+
+    def __init__(self, ser_dev=None, fd=None):
+        if ser_dev!=None:
+            self.open(ser_dev)
+        self.__fd = fd
+        self.__version = None
+        self.__date = None
+        self.__board = None
+        self.__chip = None
+
+    def __exit__(self, _type, value, traceback):
+        self.close()
+
+    def open(self, ser_dev):
+        self.__serial = serial.Serial(ser_dev, 115200, timeout=0.1)
+
+    def write(self, data):
+        if self.__serial:
+            if isinstance(data, str):
+                self.__serial.write(bytearray(data, 'latin-1'))
+            elif isinstance(data, bytearray):
+                self.__serial.write(data)
+            elif isinstance(data, (list, tuple)):
+                for item in data:
+                    self.write(item)
+        else:
+            raise Exception("mp_board is not connected")
+
+    def read(self):
+        if self.__serial:
+            data = self.__serial.read(1000)
+            data = data.decode('latin-1').split("\r\n")
+            return data
+        else:
+             raise Exception("mp_board is not connected")
+
+    def close(self):
+        if self.__serial:
+            self.__serial.close()
+
+    def mp_info(self, soft_reset_string):
+        rePat = re.compile('MicroPython ([\S]+) on ([\S]+) ([\S]+) with ([\S]+)')
+        if len(soft_reset_string)<3:
+            return
+        mpid = soft_reset_string[3]
+        mtch = rePat.match(mpid)
+        if mtch:
+            version, date, board, chip = mtch.groups()
+            chip = chip.lower()
+            self.__version = version
+            self.__date = date
+            self.__board = board
+            self.__chip = chip
+
+    @property
+    def version(self):
+        return self.__version
+
+    @property
+    def date(self):
+        return self.__date
+
+    @property
+    def board(self):
+        return self.__board
+
+    @property
+    def chip(self):
+        return self.__chip
+
+    def soft_reset(self):
+        self.write(self.ser_soft_reset)
+        out = self.read()
+        cond_log(self.__fd, out)
+        self.mp_info(out)
+
+
+def get_serial_device(board, device, fd):
+    for dev in glob.glob('/dev/ttyACM*'):
+        dev = mp_board(dev)
+        if dev.chip == device:
             cond_log(fd, "Found %s on %s" % (device, dev))
-            return ser, version, board
-        ser.close()
+            return dev
+        dev.close()
     return None
 
-def check_valid_software(git_hash, ser_version, fd):
+def check_valid_software(git_hash, ser_version, fd=None):
     '''
     Valid softweare is
     - non dirty software
@@ -212,21 +292,36 @@ def check_valid_software(git_hash, ser_version, fd):
         grps = mtch.groups()
         ser_hash = grps[0]
         cond_log(fd, "Found hash (%s) in version string %s" % (ser_hash, ser_version))
-        if ser_hash == git_hash[0:len(ser_hash)]:
+        git_short_hash = git_hash[0:len(ser_hash)]
+        if ser_hash == git_short_hash:
             cond_log(fd, "%s software on the serial device" % ("Clean" if len(grps[1])==0 else grps[1].title()))
             return len(grps[1])==0
         else:
+            cond_log(fd, "Hash do not match: %s != %s" % (ser_hash, git_short_hash))
             return False
     else:
         raise Exception("Nothing found in \"%s\"" % ser_version)
     return False
 
-def test_bin(board, device, git_hash, fd=None):
-    ser, version, board = get_serial_device(board, device, sys.stdout)
-    if not check_valid_software(git_hash, version, sys.stdout):
+def test_bin(board, device, git_hash, tests, fd=None):
+    ser = get_serial_device(board, device, fd)
+    if not check_valid_software(git_hash, ser.version, fd):
         ser.close()
-        cond_log(fd, ["No valid software fuound on the device.", "No test done"])
+        cond_log(fd, ["No valid software found on the device.", "No test done"])
         return
+    #
+    # Start run code on the board and check results
+    #
+    for test in tests:
+        test_name, test_code, expected = test
+        ser.write(test_code)
+        res = ser.read()
+        print(res, expected)
+        if not res[-2] == expected:
+            cond_log(fd, "\"%s\" failed" % (test_name))
+            print("%s failed" % (test_name))
+        else:
+            cond_log(fd, "\"%s\" succeeded" % (test_name))
 
 
 

@@ -21,7 +21,6 @@ class TestGitCode(unittest.TestCase):
         pass
 
     def error_callback(self, data):
-        print(data)
         if self.errMsgPat:
             mtch = self.errMsgPat.match(data[0])
             if mtch:
@@ -52,11 +51,49 @@ class TestGitCode(unittest.TestCase):
         self.errMsgPat = re.compile("Branch (.*) is dirty.")
         self.assertRaises(Exception, git_checkout_branch,swGitRepoPath, branch, self.error_callback)
         self.assertTrue(self.errMsgFound)
-        #with open('dirty.txt','w') as fd:
-        #    fd.write("")
+        with open('dirty.txt','w') as fd:
+            fd.write("")
 
+class TestValidSoftware(unittest.TestCase):
 
+    def test_dirty_version(self):
+        ser_version = 'v1.7-237-g55773af-dirty'
+        git_hash= '55773af311fe782dcaf8a366df426360bbe3a49e'
+        self.assertFalse(check_valid_software(git_hash, ser_version))
 
+    def test_novalid_version(self):
+        ser_version = ''
+        git_hash= '55773af311fe782dcaf8a366df426360bbe3a49e'
+        self.assertRaises(Exception, check_valid_software,git_hash, ser_version)
+
+    def test_non_matching_hash(self):
+        ser_version = 'v1.7-237-g55773af'
+        git_hash= '14b8969aca02e8e6da6a882a71345117c916a4eb'
+        self.assertFalse(check_valid_software(git_hash, ser_version))
+
+    def test_valid_version(self):
+        ser_version = 'v1.7-237-g55773af'
+        git_hash= '55773af311fe782dcaf8a366df426360bbe3a49e'
+        self.assertTrue(check_valid_software(git_hash, ser_version))
+
+class TestMicropythonSoftResetString(unittest.TestCase):
+    mp_ser_str=[ "",
+                "PYB: sync filesystems",
+                "PYB: soft reboot","MicroPython fin_l4-6-g9b48fff on 2016-04-20; F4DISC with STM32F407",
+                "Type \"help()\" for more information.",
+                ">>>"]
+
+    def test_empty(self):
+        sreset_str = ["",]
+        ret = mp_extract_version_info(sreset_str)
+        res = not any(ret)
+        self.assertTrue(res)
+
+    def test_succeed(self):
+        sreset_str = self.mp_ser_str
+        ret = mp_extract_version_info(sreset_str)
+        res = all(ret)
+        self.assertTrue(res)
 
 
 if __name__ == '__main__':

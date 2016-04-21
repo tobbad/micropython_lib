@@ -28,6 +28,9 @@ exportPrefix='ex_'
 board2chip={}
 board2chip['STM32F4DISC']='stm32f407'
 board2chip['STM32L476DISC']='stm32l476'
+tests=[
+("Carrige return",'',''),
+("Hello world",'print("Hello world")',"Hello world")]
 #######################################
 #
 # script functions
@@ -45,7 +48,7 @@ def ex_STM32F4DISC(*para):
     gHash = git_checkout_branch(swGitRepoPath, branch, Usage, fd)
     #build_bin(swGitRepo, buildPath, board, Usage, fd)
     #stlink_deploy(swGitRepo, buildPath, board, board2chip[board], gHash, Usage, fd)
-    test_bin(board, board2chip[board], gHash)
+    test_bin(board, board2chip[board], gHash, tests, sys.stdout)
 
 
 
