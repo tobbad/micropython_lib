@@ -52,8 +52,8 @@ class TestGitCode(unittest.TestCase):
         self.errMsgPat = re.compile("Branch (.*) is dirty.")
         self.assertRaises(Exception, git_checkout_branch,swGitRepoPath, branch, self.error_callback)
         self.assertTrue(self.errMsgFound)
-        with open('dirty.txt','w') as fd:
-            fd.write("")
+        #with open('dirty.txt','w') as fd:
+        #    fd.write("")
 
 
 
