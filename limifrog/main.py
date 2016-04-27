@@ -54,7 +54,7 @@ def colors():
     while True:
         color = randint(0, 2**16-1)
         disp.box(0, 0, 159, 127, color)
-        pyb.delay(200)
+        #pyb.delay(200)
 
 
 gravity()

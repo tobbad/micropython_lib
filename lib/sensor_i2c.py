@@ -15,7 +15,7 @@ class sensor_i2c():
             raise Exception("Address size not 8 or 16 not supported")
         self.addr_size  = addr_size
         self.com = pyb.I2C(i2c_bus, pyb.I2C.MASTER, addr = self.i2c_addr)
-        whoami = self.read_u8(self.WHO_IAM_REG) | self.WHOAMI_ANS_MASK
+        whoami = self.read_u8(self.WHO_IAM_REG) & self.WHOAMI_ANS_MASK
 
         if whoami != self.WHOAMI_ANS:
             raise Exception("No sensor found @ 0x%02x" %(self.i2c_addr))
