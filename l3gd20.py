@@ -192,6 +192,7 @@ class L3GD20(COM_SPI, multibyte):
         Create a L3GD20 device.
         """
         super(L3GD20, self).__init__(communication, dev_selector, self.ADDR_MODE_8, self.TRANSFER_MSB_FIRST)
+        self.exists()
         self._conf = {}
         self.init()
         self._update_dps_fs()

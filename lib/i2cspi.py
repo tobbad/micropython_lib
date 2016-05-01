@@ -19,6 +19,13 @@ class COM_SERIAL():
         self.com = communication
         self.selector = dev_selector
         self.addr_size  = addr_size
+        
+    def exists(self):
+        '''
+        Check if device on the bus exists:
+        Keep it separate from constructor to allow setup the chip before asking 
+        for identity as needed for example in 3 wire SPI communication.
+        '''
         whoami = self.read_binary(self.WHO_IAM_REG, 1)[0] & self.WHO_IAM_ANSWER_MASK
         if whoami != self.WHO_IAM_ANSWER:
             raise Exception("No sensor found @ 0x%02x" %(self.i2c_addr))
