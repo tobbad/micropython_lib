@@ -28,8 +28,8 @@ See:
     STM32Cube_FW_F4_V1.3.0/Drivers/BSP/Components/l3gd20/l3gd20.h
     STM32Cube_FW_F4_V1.3.0/Drivers/BSP/Components/l3gd20/l3gd20.c
 """
-from pyb import SPI
-
+from i2cspi import COM_SPI
+from multibyte import multibyte
 #
 #    General SPI
 #
@@ -157,6 +157,10 @@ L3GD20_CTRL_REG4_VAL = const(L3GD20_BDU_CONTINOUS |
                              L3GD20_BLE_LSB |
                              L3GD20_FULLSCALE_250 |
                              L3GD20_SIM_4WIRE)
+L3GD20_CTRL_REG4_VAL_ALT = const(L3GD20_BDU_CONTINOUS |
+                             L3GD20_BLE_LSB |
+                             L3GD20_FULLSCALE_2000 |
+                             L3GD20_SIM_4WIRE)
 # Normal Mode
 # FIFO is enabled
 # No Highpass
@@ -169,7 +173,7 @@ L3GD20_CTRL_REG5_VAL = const(L3GD20_BOOT_NORMALMODE |
                              L3GD20_INT2_SEL_0)
 
 
-class L3GD20:
+class L3GD20(COM_SPI, multibyte):
     #
     # Debug
     #
@@ -179,26 +183,17 @@ class L3GD20:
         (L3GD20_CTRL_REG3_ADDR, L3GD20_CTRL_REG3_VAL),
         (L3GD20_CTRL_REG4_ADDR, L3GD20_CTRL_REG4_VAL),
         (L3GD20_CTRL_REG5_ADDR, L3GD20_CTRL_REG5_VAL)]
-    DEBUG = False
 
-    def __init__(self, cs_pin, ser_dev):
+    WHO_IAM_ANSWER = L3GD20_I_AM_L3GD20
+    WHO_IAM_REG = L3GD20_WHO_AM_I_ADDR
+
+    def __init__(self, communication, dev_selector):
         """
         Create a L3GD20 device.
         """
-        if not isinstance(ser_dev, SPI):
-            raise ValueError("Only SPI devices are supported as ser_dev")
+        super(L3GD20, self).__init__(communication, dev_selector, self.ADDR_MODE_8, self.TRANSFER_MSB_FIRST)
         self._conf = {}
-        self._cs_pin = cs_pin
-        self._ser = ser_dev
-        who_am_i = self._read_id()
-        if who_am_i == L3GD20_I_AM_L3GD20:
-            for addr, val in self.DEFAULT_CONF:
-                self._conf[addr] = val
-                self._write_bytes(addr, bytearray([val, ]))
-                if self.DEBUG:
-                    print("Set 0x%02x to 0x%02x" % (addr, val))
-        else:
-            raise Exception('L3GD20 gyro not present')
+        self.init()
         self._update_dps_fs()
 
     def _update_dps_fs(self):
@@ -210,72 +205,40 @@ class L3GD20:
         entry = self._conf[L3GD20_CTRL_REG4_ADDR] & L3GD20_FULLSCALE_SELECTION
         self._sensitivity = conv[entry]
 
-    def _convert_raw_to_dps(self, x):
-        # Convert integer values read from the device to a
-        # degree per second value
-        x = x[1]*256+x[0]
-        if x & 0x8000:
-            x = x - 65536
-        return x * self._sensitivity
+    def init(self):
+        for addr, val in self.DEFAULT_CONF:
+            self._conf[addr] = val
+            self.write_u8(addr, val)
+        
 
-    def _read_bytes(self, addr, nbytes):
-        addr |= L3GD20_READWRITE_CMD
-        if nbytes > 1:
-            addr |= L3GD20_MULTIPLEBYTE_CMD
-        self._cs_pin.low()
-        self._ser.send(addr)
-        if self.DEBUG:
-            print("SPI read addr: ", addr)
-        buf = self._ser.recv(nbytes)
-        self._cs_pin.high()
-        if self.DEBUG:
-            print("SPI read data", buf)
-        return buf
-
-    def _write_bytes(self, addr, buf):
+    def write_binary(self, reg_addr, data):
         """
         Write byte to a certain address.
         SIDE EFFECT: If data is written to
         L3GD20_CTRL_REG4_ADDR the conversion factor is recalculated
         based on the register value.
         """
-        if len(buf) > 1:
-            addr |= L3GD20_MULTIPLEBYTE_CMD
-        self._cs_pin.low()
-        self._ser.send(addr)
-        if self.DEBUG:
-            print("SPI write addr: ", addr)
-        for b in buf:
-            self._ser.send(b)
-            if self.DEBUG:
-                print("SPI write data: ", b)
-        self._cs_pin.high()
-        if addr == L3GD20_CTRL_REG4_ADDR:
+        super(L3GD20, self).write_binary(reg_addr, data)
+        if reg_addr == L3GD20_CTRL_REG4_ADDR:
             self._update_dps_fs()
-
-    def _read_id(self):
-        return self._read_bytes(L3GD20_WHO_AM_I_ADDR, 1)[0]
 
     def omega_x(self):
         """
         Get angular velocity around x axis in degree per second.
         """
-        return self._convert_raw_to_dps(self._read_bytes(L3GD20_OUT_X_L_ADDR,
-                                        2))
+        return self.read_s16(L3GD20_OUT_X_L_ADDR) * self._sensitivity
 
     def omega_y(self):
         """
         Get angular velocity around y axis.in degree per second.
         """
-        return self._convert_raw_to_dps(self._read_bytes(L3GD20_OUT_Y_L_ADDR,
-                                        2))
+        return self.read_s16(L3GD20_OUT_Y_L_ADDR) * self._sensitivity
 
     def omega_z(self):
         """
         Get angular velocity around z axis in degree per second.
         """
-        return self._convert_raw_to_dps(self._read_bytes(L3GD20_OUT_Z_L_ADDR,
-                                        2))
+        return self.read_s16(L3GD20_OUT_Z_L_ADDR) * self._sensitivity
 
     def omega_xyz(self):
         """
@@ -287,7 +250,4 @@ class L3GD20:
         """
         Get temperatur of device as integer degree celsius.
         """
-        val = self._read_bytes(L3GD20_OUT_TEMP_ADDR, 1)[0]
-        if val & 0x80:
-            val -= 256
-        return val
+        return self.read_s8(L3GD20_OUT_TEMP_ADDR)

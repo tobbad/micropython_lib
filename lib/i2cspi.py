@@ -5,20 +5,22 @@ import pyb
 import struct
 
 
-class serial():
+class COM_SERIAL():
 
-    WHOAMI_ANS_MASK = 0xFF
+    WHO_IAM_ANSWER_MASK = 0xFF
     ADDR_MODE_8, ADDR_MODE_16 = 8, 16
     DEBUG = False
+    TRANSFER_MSB_FIRST = True
+    TRANSFER_LSB_FIRST = False
     
-    def __init__(self, com, selector, addr_size):
+    def __init__(self, communication, dev_selector, addr_size, msb_first):
         if addr_size not in (self.ADDR_MODE_8, self.ADDR_MODE_16):
             raise Exception("Address size not 8 or 16 not supported")
-        self.com = com
-        self.selector = selector
+        self.com = communication
+        self.selector = dev_selector
         self.addr_size  = addr_size
-        whoami = self.read(self.WHO_IAM_REG)[0] & self.WHOAMI_ANS_MASK
-        if whoami != self.WHOAMI_ANS:
+        whoami = self.read_binary(self.WHO_IAM_REG, 1)[0] & self.WHO_IAM_ANSWER_MASK
+        if whoami != self.WHO_IAM_ANSWER:
             raise Exception("No sensor found @ 0x%02x" %(self.i2c_addr))
        
     def set_mode_16bit_addr(self, mode = True):
@@ -31,43 +33,43 @@ class serial():
         return " ".join(["0x%02x" % i for i in data])
 
 
-class i2c(serial):
+class COM_I2C(COM_SERIAL):
 
-    def read(self, reg_addr, byte_cnt):
+    def read_binary(self, reg_addr, byte_cnt):
         ans = self.com.mem_read(data=byte_cnt, addr=self.selector, memaddr=reg_addr, addr_size=self.addr_size)
         res = struct.unpack("B"*byte_cnt, ans)
         if self.DEBUG:
             print("Read (Dev 0x%02x) reg addr 0x%02x, data: %s" % (self.selector, reg_addr, self.buf2Str(res)))
         return res
 
-    def write(self, reg_addr, data):
+    def write_binary(self, reg_addr, data):
         if self.DEBUG:
             print("Write (Dev 0x%02x) reg addr 0x%02x, data: %s" % (self.selector, reg_addr, self.buf2Str(data)))
         self.com.mem_write(data=data, addr=self.selector, memaddr=reg_addr, addr_size=self.addr_size)
 
-class spi(serial):
+class COM_SPI(COM_SERIAL):
     
     READWRITE_CMD = 0x80
     MULTIPLEBYTE_CMD = 0x40
 
-    def read(self, reg_addr, byte_cnt):
-        addr |= self.READWRITE_CMD
-        if nbytes > 1:
-            addr |= self.MULTIPLEBYTE_CMD
+    def read_binary(self, reg_addr, byte_cnt):
+        reg_addr |= self.READWRITE_CMD
+        if byte_cnt > 1:
+            reg_addr |= self.MULTIPLEBYTE_CMD
         self.selector.low()
-        self.com.send(addr)
-        buf = self.com.recv(nbytes)
+        self.com.send(reg_addr)
+        buf = self.com.recv(byte_cnt)
         self.selector.high()
         if self.DEBUG:
             print("Read (Dev %s) reg addr 0x%02x, data: %s" % (self.selector, reg_addr, self.buf2Str(res)))
         return buf
 
-    def write(self, reg_addr, data):
-        if len(buf) > 1:
-            addr |= self.MULTIPLEBYTE_CMD
+    def write_binary(self, reg_addr, data):
+        if len(data) > 1:
+            reg_addr |= self.MULTIPLEBYTE_CMD
         self.selector.low()
-        self.com.send(addr)
-        for b in buf:
+        self.com.send(reg_addr)
+        for b in data:
             self.com.send(b)
         if self.DEBUG:
             print("Write (Dev %s) reg addr 0x%02x, data: %s" % (self.selector, reg_addr, self.buf2Str(data)))
