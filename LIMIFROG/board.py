@@ -5,8 +5,8 @@ import pyb
 
 const={
     'lis3mdl':{'i2c_bus':2, 'i2c_addr':0x1C},
-    'lps25h':{'i2c_bus':2, 'i2c_addr':0x5C}
-    'lsm6ds3':{'i2c_bus':2, 'i2c_addr': 0x6A}
+    'lps25h':{'i2c_bus':2, 'i2c_addr':0x5C},
+    'lsm6ds3':{'i2c_bus':2, 'i2c_addr': 0x6A},
 }
 
 
