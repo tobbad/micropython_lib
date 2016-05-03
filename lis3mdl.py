@@ -2,10 +2,15 @@
 #
 #
 from i2cspi import COM_I2C
+from multibyte import multibyte
+
 from lis3mdl_const import *
 from math import sqrt
 
-class LIS3MDL(COM_I2C):
+class LIS3MDL(COM_I2C, multibyte):
+    '''
+    STMicro Magnetfield sensor.
+    '''
 
     WHO_IAM_REG = 0x0F
     WHO_IAM_ANSWER = 0x3D
@@ -25,25 +30,26 @@ class LIS3MDL(COM_I2C):
         # OMZ = 11 (ultra-high-performance mode for Z)
         (CTRL_REG4_ADDR, 0x0C)]
 
-    def __init__(self, bus=2, addr = 0x1C):
-        super(LIS3MDL, self).__init__(bus, addr, self.ADDR_MODE_8)
-        self.gauss2tesla = 1.0/10000.0
-        self.__scale = 4.0
+    def __init__(self, communication, dev_selector):
+        super(LIS3MDL, self).__init__(communication, dev_selector, self.ADDR_MODE_8, self.TRANSFER_MSB_FIRST)
+        gauss2tesla = 1.0/10000.0
+        scale = 4.0
+        self.__sensitivity = self.__scale/SENSITIVITY_OF_MIN_SCALE*gauss2tesla
         self.init()
 
     def x(self):
         val = self.read_s16(MAGNETO_X_LOW_REG) # 0x80 for auto increment of adresse
         # Return value in Tesla
         # (4 gauss scale) * (6842 LSB/gauss at 4 gauss scale)
-        return val*self.__scale/SENSITIVITY_OF_MIN_SCALE*self.gauss2tesla
+        return val*self.__sensitivity
 
     def y(self):
         val = self.read_s16(MAGNETO_Y_LOW_REG) # 0x80 for auto increment of adresse
-        return val*self.__scale/SENSITIVITY_OF_MIN_SCALE*self.gauss2tesla
+        return val*self.__sensitivity
 
     def z(self):
         val = self.read_s16(MAGNETO_Z_LOW_REG) # 0x80 for auto increment of adresse
-        return val*self.__scale/SENSITIVITY_OF_MIN_SCALE*self.gauss2tesla
+        return val*self.__sensitivity
 
     def norm(self, vec=None):
         if vec == None:
