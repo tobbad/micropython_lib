@@ -46,6 +46,9 @@ class COM_SERIAL():
     def buf2Str(self, data):
         return " ".join(["0x%02x" % i for i in data])
 
+    def unit(self):
+        return "NA"
+
     def __str__(self):
         raise Exception("Function must be defined in derived class")
 

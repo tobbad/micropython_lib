@@ -3,6 +3,11 @@
 #
 import pyb
 
+const={
+    'lis3mdl':{'i2c_bus':2, 'i2c_addr':0x1C}
+}
+
+
 class limifrog():
 
     def __init__(self):

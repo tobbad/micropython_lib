@@ -34,7 +34,7 @@ class LIS3MDL(COM_I2C, multibyte):
         super(LIS3MDL, self).__init__(communication, dev_selector, self.ADDR_MODE_8, self.TRANSFER_MSB_FIRST)
         gauss2tesla = 1.0/10000.0
         scale = 4.0
-        self.__sensitivity = self.__scale/SENSITIVITY_OF_MIN_SCALE*gauss2tesla
+        self.__sensitivity = scale/SENSITIVITY_OF_MIN_SCALE*gauss2tesla
         self.init()
 
     def x(self):
@@ -50,21 +50,22 @@ class LIS3MDL(COM_I2C, multibyte):
     def z(self):
         val = self.read_s16(MAGNETO_Z_LOW_REG) # 0x80 for auto increment of adresse
         return val*self.__sensitivity
+    
+    def xyz(self):
+        return self.x(), self.y(), self.z()
+
+    def unit(self):
+        ''' Unit is Tesla.'''
+        return 'T'
 
     def norm(self, vec=None):
         if vec == None:
-            vec = self.vec()
+            vec = self.xyz()
         vec_a = sqrt(sum([i*i for i in vec]))
         return vec_a
 
-    def vec(self):
-        x = self.x()
-        y = self.y()
-        z = self.z()
-        return x,y,z
-
     def vec_normalized(self):
-        vec = self.vec()
+        vec = self.xyz()
         vec_a = self.norm(vec)
         return [i/vec_a  for i in vec]
 
