@@ -192,25 +192,17 @@ class L3GD20(COM_SPI, multibyte):
         Create a L3GD20 device.
         """
         super(L3GD20, self).__init__(communication, dev_selector, self.ADDR_MODE_8, self.TRANSFER_MSB_FIRST)
-        self.exists()
-        self._conf = {}
         self.init()
-        self._update_dps_fs()
 
-    def _update_dps_fs(self):
+    def _update_dps_fs(self, new_fullscale):
         conv = {
             L3GD20_FULLSCALE_250: L3GD20_SENSITIVITY_250DPS,
             L3GD20_FULLSCALE_500: L3GD20_SENSITIVITY_500DPS,
             L3GD20_FULLSCALE_2000: L3GD20_SENSITIVITY_2000DPS,
             L3GD20_FULLSCALE_SELECTION: L3GD20_SENSITIVITY_2000DPS}
-        entry = self._conf[L3GD20_CTRL_REG4_ADDR] & L3GD20_FULLSCALE_SELECTION
+        entry = new_fullscale & L3GD20_FULLSCALE_SELECTION
         self._sensitivity = conv[entry]
-
-    def init(self):
-        for addr, val in self.DEFAULT_CONF:
-            self._conf[addr] = val
-            self.write_u8(addr, val)
-        
+       
 
     def write_binary(self, reg_addr, data):
         """
@@ -221,31 +213,31 @@ class L3GD20(COM_SPI, multibyte):
         """
         super(L3GD20, self).write_binary(reg_addr, data)
         if reg_addr == L3GD20_CTRL_REG4_ADDR:
-            self._update_dps_fs()
+            self._update_dps_fs(data[0])
 
-    def omega_x(self):
+    def x(self):
         """
         Get angular velocity around x axis in degree per second.
         """
         return self.read_s16(L3GD20_OUT_X_L_ADDR) * self._sensitivity
 
-    def omega_y(self):
+    def y(self):
         """
         Get angular velocity around y axis.in degree per second.
         """
         return self.read_s16(L3GD20_OUT_Y_L_ADDR) * self._sensitivity
 
-    def omega_z(self):
+    def z(self):
         """
         Get angular velocity around z axis in degree per second.
         """
         return self.read_s16(L3GD20_OUT_Z_L_ADDR) * self._sensitivity
 
-    def omega_xyz(self):
+    def xyz(self):
         """
         Get tuple of all angular velocities in degree per second.
         """
-        return (self.omega_x(), self.omega_y(), self.omega_z())
+        return (self.x(), self.y(), self.z())
 
     def temperature(self):
         """

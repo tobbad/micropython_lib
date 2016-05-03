@@ -19,16 +19,23 @@ class COM_SERIAL():
         self.com = communication
         self.selector = dev_selector
         self.addr_size  = addr_size
-        
+
+    def init(self):
+        for reg, val in self.DEFAULT_CONF:
+            self.write_u8(reg, val)
+    
+    def id(self):
+        return self.read_binary(self.WHO_IAM_REG, 1)[0] & self.WHO_IAM_ANSWER_MASK
+    
     def exists(self):
         '''
         Check if device on the bus exists:
         Keep it separate from constructor to allow setup the chip before asking 
         for identity as needed for example in 3 wire SPI communication.
         '''
-        whoami = self.read_binary(self.WHO_IAM_REG, 1)[0] & self.WHO_IAM_ANSWER_MASK
+        whoami = self.id()
         if whoami != self.WHO_IAM_ANSWER:
-            raise Exception("No sensor found @ 0x%02x" %(self.i2c_addr))
+            raise Exception("No sensor found %s" %(self))
        
     def set_mode_16bit_addr(self, mode = True):
         if mode:
@@ -39,6 +46,9 @@ class COM_SERIAL():
     def buf2Str(self, data):
         return " ".join(["0x%02x" % i for i in data])
 
+    def __str__(self):
+        raise Exception("Function must be defined in derived class")
+
 
 class COM_I2C(COM_SERIAL):
 
@@ -46,41 +56,81 @@ class COM_I2C(COM_SERIAL):
         ans = self.com.mem_read(data=byte_cnt, addr=self.selector, memaddr=reg_addr, addr_size=self.addr_size)
         res = struct.unpack("B"*byte_cnt, ans)
         if self.DEBUG:
-            print("Read (Dev 0x%02x) reg addr 0x%02x, data: %s" % (self.selector, reg_addr, self.buf2Str(res)))
+            print("Read (%s) reg addr 0x%02x, data: %s" % (self, reg_addr, self.buf2Str(res)))
         return res
 
     def write_binary(self, reg_addr, data):
         if self.DEBUG:
-            print("Write (Dev 0x%02x) reg addr 0x%02x, data: %s" % (self.selector, reg_addr, self.buf2Str(data)))
+            print("Write (%s) reg addr 0x%02x, data: %s" % (self, reg_addr, self.buf2Str(data)))
         self.com.mem_write(data=data, addr=self.selector, memaddr=reg_addr, addr_size=self.addr_size)
+
+    def __str__(self):
+        return "I2C @ 0x%02x" % self.i2c_addr
+
 
 class COM_SPI(COM_SERIAL):
     
-    READWRITE_CMD = 0x80
+    READ_CMD = 0x80
     MULTIPLEBYTE_CMD = 0x40
 
+    def __init__(self, communication, dev_selector, addr_size, msb_first):
+        super(COM_SPI, self).__init__(communication, dev_selector, addr_size, msb_first)
+        self.__bidi_mode = False
+
+    @property
+    def bidi_mode(self):
+        return self.__bidi_mode
+    
+    @bidi_mode.setter
+    def bidi_mode(self, mode):
+        self.__bidi_mode = mode
+ 
+    def set_multi_byte(self, addr):
+        return (addr | self.MULTIPLEBYTE_CMD)
+ 
     def read_binary(self, reg_addr, byte_cnt):
-        reg_addr |= self.READWRITE_CMD
+        reg_addr |= self.READ_CMD
         if byte_cnt > 1:
-            reg_addr |= self.MULTIPLEBYTE_CMD
+            reg_addr = self.set_multi_byte(reg_addr)
         self.selector.low()
+        if self.__bidi_mode:
+            if self.DEBUG:
+                print("Set one line mode")
+            self.com.dir(self.com.DIRECTION_ONE_LINE)
+        else:
+            if self.DEBUG:
+                print("Set two line mode")
+            self.com.dir(self.com.DIRECTION_TWO_LINES)
         self.com.send(reg_addr)
         buf = self.com.recv(byte_cnt)
         self.selector.high()
         if self.DEBUG:
-            print("Read (Dev %s) reg addr 0x%02x, data: %s" % (self.selector, reg_addr, self.buf2Str(res)))
+            print("Read (%s) reg addr 0x%02x, data: %s" % (self, reg_addr, self.buf2Str(buf)))
         return buf
 
     def write_binary(self, reg_addr, data):
         if len(data) > 1:
             reg_addr |= self.MULTIPLEBYTE_CMD
         self.selector.low()
+        if self.__bidi_mode:
+            if self.DEBUG:
+                print("Set one line mode")
+            self.com.dir(self.com.DIRECTION_ONE_LINE)
+        else:
+            if self.DEBUG:
+                print("Set two line mode")
+            self.com.dir(self.com.DIRECTION_TWO_LINES)
         self.com.send(reg_addr)
         for b in data:
             self.com.send(b)
         if self.DEBUG:
-            print("Write (Dev %s) reg addr 0x%02x, data: %s" % (self.selector, reg_addr, self.buf2Str(data)))
+            print("Write (%s) reg addr 0x%02x, data: %s" % (self, reg_addr, self.buf2Str(data)))
         self.selector.high()
+
+    def __str__(self):
+        return "SPI CS=Pin(%s)%s" % (self.selector.name(), ", BiDi" if self.__bidi_mode else "")
+
+
 
 if __name__ == '__main__':
     class DUMMY(sensor_i2c):
