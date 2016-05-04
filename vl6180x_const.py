@@ -56,7 +56,7 @@ VL6180X_RESULT_RANGE_REFERENCE_AMB_COUNT = const(0x0078)
 VL6180X_RESULT_RANGE_RETURN_CONV_TIME = const(0x007C)
 VL6180X_RESULT_RANGE_REFERENCE_CONV_TIME = const(0x0080)
 
-VL6180X_GAIN={}
+VL6180X_GAIN = {}
 VL6180X_GAIN["20"] = 0
 VL6180X_GAIN["10"] = 1
 VL6180X_GAIN["5.0"] = 2
@@ -72,7 +72,7 @@ VL6180X_FIRMWARE_RESULT_SCALER = const(0x0120)
 VL6180X_I2C_SLAVE_DEVICE_ADDRESS = const(0x0212)
 VL6180X_INTERLEAVED_MODE_ENABLE = const(0x02A3)
 
-VL6180X_DEFAULT_CONF= (
+VL6180X_DEFAULT_CONF = (
     (0x0207, 0x01),
     (0x0208, 0x01),
     (0x0096, 0x00),
@@ -103,28 +103,35 @@ VL6180X_DEFAULT_CONF= (
     (0x01ac, 0x3e),
     (0x01a7, 0x1f),
     (0x0030, 0x00),
-        # Recommended settings from datasheet
-        # http:# www.st.com/st-web-ui/static/active/en/resource/technical/document/application_note/DM00122600.pdf
-        # Enable Interrupts on Conversion Complete (any source),
-    (VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO, (4 << 3)|(4) ), #  Set GPIO1 high when sample complete
-    (VL6180X_SYSTEM_MODE_GPIO1, 0x10), #  Set GPIO1 high when sample complete
-    (VL6180X_READOUT_AVERAGING_SAMPLE_PERIOD, 0x30), # Set Avg sample period
-    (VL6180X_SYSALS_ANALOGUE_GAIN, 0x46), #  Set the ALS gain
-    (VL6180X_SYSRANGE_VHV_REPEAT_RATE, 0xFF), #  Set auto calibration period (Max = 255)/(OFF = 0)
-    (VL6180X_SYSALS_INTEGRATION_PERIOD, 0x63), #  Set ALS integration time to 100ms
-    (VL6180X_SYSRANGE_VHV_RECALIBRATE, 0x01), #  perform a single temperature calibration
-        # Optional settings from datasheet
-        # http:# www.st.com/st-web-ui/static/active/en/resource/technical/document/application_note/DM00122600.pdf
-    (VL6180X_SYSRANGE_INTERMEASUREMENT_PERIOD, 0x09), #  Set default ranging inter-measurement period to 100ms
-    (VL6180X_SYSALS_INTERMEASUREMENT_PERIOD, 0x0A), #  Set default ALS inter-measurement period to 100ms
-    (VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO, 0x24), #  Configures interrupt on ‘New Sample Ready threshold event’
-        # Additional settings defaults from community
+    # Recommended settings from datasheet
+    # http:# www.st.com/st-web-ui/static/active/en/resource/technical/document/application_note/DM00122600.pdf
+    # Enable Interrupts on Conversion Complete (any source),
+    #  Set GPIO1 high when sample complete
+    (VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO, (4 << 3) | (4)),
+    (VL6180X_SYSTEM_MODE_GPIO1, 0x10),  # Set GPIO1 high when sample complete
+    (VL6180X_READOUT_AVERAGING_SAMPLE_PERIOD, 0x30),  # Set Avg sample period
+    (VL6180X_SYSALS_ANALOGUE_GAIN, 0x46),  # Set the ALS gain
+    #  Set auto calibration period (Max = 255)/(OFF = 0)
+    (VL6180X_SYSRANGE_VHV_REPEAT_RATE, 0xFF),
+    #  Set ALS integration time to 100ms
+    (VL6180X_SYSALS_INTEGRATION_PERIOD, 0x63),
+    #  perform a single temperature calibration
+    (VL6180X_SYSRANGE_VHV_RECALIBRATE, 0x01),
+    # Optional settings from datasheet
+    # http:# www.st.com/st-web-ui/static/active/en/resource/technical/document/application_note/DM00122600.pdf
+    #  Set default ranging inter-measurement period to 100ms
+    (VL6180X_SYSRANGE_INTERMEASUREMENT_PERIOD, 0x09),
+    #  Set default ALS inter-measurement period to 100ms
+    (VL6180X_SYSALS_INTERMEASUREMENT_PERIOD, 0x0A),
+    #  Configures interrupt on ‘New Sample Ready threshold event’
+    (VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO, 0x24),
+    # Additional settings defaults from community
     (VL6180X_SYSRANGE_MAX_CONVERGENCE_TIME, 0x32),
     (VL6180X_SYSRANGE_RANGE_CHECK_ENABLES, 0x10 | 0x01),
-    (VL6180X_SYSRANGE_EARLY_CONVERGENCE_ESTIMATE, 0x7B ),
+    (VL6180X_SYSRANGE_EARLY_CONVERGENCE_ESTIMATE, 0x7B),
     (VL6180X_SYSALS_INTEGRATION_PERIOD, 0x64),
 
-    (VL6180X_READOUT_AVERAGING_SAMPLE_PERIOD,0x30),
-    (VL6180X_SYSALS_ANALOGUE_GAIN,0x40),
-    (VL6180X_FIRMWARE_RESULT_SCALER,0x01),
+    (VL6180X_READOUT_AVERAGING_SAMPLE_PERIOD, 0x30),
+    (VL6180X_SYSALS_ANALOGUE_GAIN, 0x40),
+    (VL6180X_FIRMWARE_RESULT_SCALER, 0x01),
 )

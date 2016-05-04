@@ -4,8 +4,8 @@
 from i2cspi import COM_I2C
 from multibyte import multibyte
 from lps25h_const import *
+from math import pow
 
-from math import log
 
 class LPS25H(COM_I2C, multibyte):
     ''' Pressure sensor'''
@@ -15,15 +15,16 @@ class LPS25H(COM_I2C, multibyte):
 
     DEFAULT_CONF = [
         # 0xB0 = 0b10110000
-        # PD = 1 (active mode);  ODR = 011 (12.5 Hz pressure & temperature output data rate)
+        # PD = 1    (active mode);
+        # ODR = 011 (12.5 Hz pressure & temperature output data rate)
         # Not very energy efficient but shows the device works.
         (CTRL_REG1_ADDR, 0xB0)]
 
     def __init__(self, communication, dev_selector):
-        super(LPS25H, self).__init__(communication, dev_selector, self.ADDR_MODE_8, self.TRANSFER_MSB_FIRST)
+        super(LPS25H, self).__init__(communication, dev_selector)
         self.init()
         self.__t = -273.15
-        self.__p  = 0.0
+        self.__p = 0.0
         self.__p0 = 1013.25     # mBar
         self.__T0 = 288.15
         self.__Tgrad = 0.0065
@@ -43,7 +44,8 @@ class LPS25H(COM_I2C, multibyte):
     def height(self):
         ''' Using international hight formula '''
         self.__measure()
-        height =self.__T0/self.__Tgrad*(1.0 - pow(self.__p/self.__p0, self.__exp))
+        height = self.__T0/self.__Tgrad
+        height *= (1.0 - pow(self.__p/self.__p0, self.__exp))
         return height
 
     def temperature(self):

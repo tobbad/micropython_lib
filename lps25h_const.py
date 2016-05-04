@@ -8,7 +8,7 @@ RES_CONF = const(0x10)
 CTRL_REG1_ADDR = const(0x20)
 CTRL_REG2_ADDR = const(0x21)
 CTRL_REG3_ADDR = const(0x22)
-CTRL_REG4_ADDR = const(0x23) # 25H
+CTRL_REG4_ADDR = const(0x23)  # 25H
 
 STATUS_REG = const(0x27)
 
@@ -19,17 +19,17 @@ PRESS_OUT_H = const(0x2A)
 TEMP_OUT_L = const(0x2B)
 TEMP_OUT_H = const(0x2C)
 
-FIFO_CTRL = const(0x2E) # 25H
-FIFO_STATUS = const(0x2F) # 25H
+FIFO_CTRL = const(0x2E)  # 25H
+FIFO_STATUS = const(0x2F)  # 25H
 
-AMP_CTRL = const(0x30) # 331AP
+AMP_CTRL = const(0x30)  # 331AP
 
-RPDS_L = const(0x39) # 25H
-RPDS_H = const(0x3A) # 25H
+RPDS_L = const(0x39)  # 25H
+RPDS_H = const(0x3A)  # 25H
 
-DELTA_PRESS_XL = const(0x3C) # 331AP
-DELTA_PRESS_L = const(0x3D) # 331AP
-DELTA_PRESS_H = const(0x3E) # 331AP
+DELTA_PRESS_XL = const(0x3C)  # 331AP
+DELTA_PRESS_L = const(0x3D)  # 331AP
+DELTA_PRESS_H = const(0x3E)  # 331AP
 
 
 # dummy addresses for registers in different locations on different devices;
@@ -54,4 +54,3 @@ LPS25H_INTERRUPT_CFG = const(0x24)
 LPS25H_INT_SOURCE = const(0x25)
 LPS25H_THS_P_L = const(0x30)
 LPS25H_THS_P_H = const(0x31)
-

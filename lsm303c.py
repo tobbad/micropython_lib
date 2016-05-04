@@ -2,7 +2,7 @@
 Driver for STMicroelectronics LSM303CTR Accel/Mag sensor for MicroPython.
 
 This driver assumes a SPI device and two chip select pins given
-to the constructor. 
+to the constructor.
 
 The following example assumes that the CS is connected to the "PE0" pin
 and spi bus 1 is used.
@@ -34,24 +34,26 @@ from i2cspi import COM_SPI
 from multibyte import multibyte
 from lsm303c_const import *
 
+
 class LSM303C_MAG(COM_SPI, multibyte):
 
     WHO_IAM_ANSWER = LMS303C_MAG_ID
     WHO_IAM_REG = LSM303C_WHO_AM_I_ADDR
 
-    DEFAULT_CONF = [(LSM303C_CTRL_REG2_M, LSM303C_MAG_REBOOT_ENABLE | LSM303C_MAG_SOFT_RESET_ENABLE  ),
-                    (LSM303C_CTRL_REG2_M, LSM303C_MAG_FS_16_GA | LSM303C_MAG_REBOOT_DEFAULT | LSM303C_MAG_SOFT_RESET_DEFAULT  ),
-                    (LSM303C_CTRL_REG3_M, LSM303C_MAG_SPI_MODE | LSM303C_MAG_CONFIG_NORMAL_MODE | LSM303C_MAG_CONTINUOUS_MODE ),
-                    (LSM303C_CTRL_REG1_M, LSM303C_MAG_TEMPSENSOR_DISABLE | LSM303C_MAG_OM_XY_ULTRAHIGH | LSM303C_MAG_ODR_40_HZ),                    
-                    (LSM303C_CTRL_REG4_M, LSM303C_MAG_OM_Z_ULTRAHIGH | LSM303C_MAG_BLE_LSB                                    ),
-                    (LSM303C_CTRL_REG5_M, LSM303C_MAG_BDU_CONTINUOUS                                                          )]
-    
+    DEFAULT_CONF = (
+        (LSM303C_CTRL_REG2_M, LSM303C_CTRL_REG2_M_RESET),
+        (LSM303C_CTRL_REG2_M, LSM303C_CTRL_REG2_M_CONF),
+        (LSM303C_CTRL_REG3_M, LSM303C_CTRL_REG3_M_CONF),
+        (LSM303C_CTRL_REG1_M, LSM303C_CTRL_REG1_M_CONF),
+        (LSM303C_CTRL_REG4_M, LSM303C_CTRL_REG4_M_CONF),
+        (LSM303C_CTRL_REG5_M, LSM303C_CTRL_REG5_M_CONF))
+
     def __init__(self, communication, dev_selector):
-        super(LSM303C_MAG, self).__init__(communication, dev_selector, self.ADDR_MODE_8, self.TRANSFER_MSB_FIRST)
-        
+        super(LSM303C_MAG, self).__init__(communication, dev_selector)
+
     def set_multi_byte(self, addr):
         multi_byte_mask = 0x04
-        val = self.read_u8(LSM303C_CTRL_REG4_M) 
+        val = self.read_u8(LSM303C_CTRL_REG4_M)
         if val & multi_byte_mask == 0:
             val |= multi_byte_mask
             self.write_u8(LSM303C_CTRL_REG4_M, val)
@@ -62,8 +64,8 @@ class LSM303C_MAG(COM_SPI, multibyte):
         conv = {
             LSM303C_MAG_FS_16_GA: 16.0/fs_max}
         if new_value not in conv:
-            return 
-        self._sensitivity = conv[new_value & 0x60] 
+            return
+        self._sensitivity = conv[new_value & 0x60]
 
     def write_binary(self, reg_addr, data):
         """
@@ -91,18 +93,21 @@ class LSM303C_MAG(COM_SPI, multibyte):
     def xyz(self):
         return self.x(), self.y(), self.z()
 
+
 class LSM303C_ACCEL(COM_SPI, multibyte):
 
     WHO_IAM_ANSWER = LMS303C_ACC_ID
     WHO_IAM_REG = LSM303C_WHO_AM_I_ADDR
-    DEFAULT_CONF = [(LSM303C_CTRL_REG5_A, LSM303C_ACC_SOFT_RESET_ENABLE ),
-                    (LSM303C_CTRL_REG4_A, LSM303C_ACC_FULLSCALE_2G | LSM303C_ACC_SPI_MODE ),
-                    (LSM303C_CTRL_REG1_A, LSM303C_ACC_HR_DISABLE | LSM303C_ACC_ODR_50_HZ | LSM303C_ACC_AXES_ENABLE |LSM303C_ACC_BDU_CONTINUOUS),
-                    ]
-    
+    DEFAULT_CONF = [
+        (LSM303C_CTRL_REG5_A, LSM303C_ACC_SOFT_RESET_ENABLE),
+        (LSM303C_CTRL_REG4_A, LSM303C_ACC_FULLSCALE_2G | LSM303C_ACC_SPI_MODE),
+        (LSM303C_CTRL_REG1_A, LSM303C_ACC_HR_DISABLE | LSM303C_ACC_ODR_50_HZ |
+         LSM303C_ACC_AXES_ENABLE | LSM303C_ACC_BDU_CONTINUOUS),
+    ]
+
     def __init__(self, communication, dev_selector):
-        super(LSM303C_ACCEL, self).__init__(communication, dev_selector, self.ADDR_MODE_8, self.TRANSFER_MSB_FIRST)
- 
+        super(LSM303C_ACCEL, self).__init__(communication, dev_selector)
+
     def set_multi_byte(self, addr):
         multi_byte_mask = 0x04
         val = self.read_u8(LSM303C_CTRL_REG4_A)
@@ -110,14 +115,14 @@ class LSM303C_ACCEL(COM_SPI, multibyte):
             val |= multi_byte_mask
             self.write_u8(LSM303C_CTRL_REG4_A, val)
         return addr
-    
+
     def _update_dps_fs(self, new_value):
         fs_max = 2**15
         conv = {
             LSM303C_ACC_FULLSCALE_2G: 2.0/fs_max,
             LSM303C_ACC_FULLSCALE_4G: 4.0/fs_max,
             LSM303C_ACC_FULLSCALE_8G: 8.0/fs_max}
-        self._sensitivity = conv[new_value & 0x30] 
+        self._sensitivity = conv[new_value & 0x30]
 
     def write_binary(self, reg_addr, data):
         """
@@ -146,31 +151,24 @@ class LSM303C_ACCEL(COM_SPI, multibyte):
         return self.x(), self.y(), self.z()
 
 
-
 class LSM303C():
 
     def __init__(self, communication, dev_selector_mag, dev_selector_accel):
         self.mag = LSM303C_MAG(communication, dev_selector_mag)
-        #self.mag.DEBUG = True
         self.mag.bidi_mode = True
         self.mag.init()
         self.accel = LSM303C_ACCEL(communication, dev_selector_accel)
-        #self.accel.DEBUG = True
         self.accel.bidi_mode = True
         self.accel.init()
-        # Enabled SPI read communication 
-        #print(LSM303C_CTRL_REG4_A)
-        #self.dev_mag.write_u8(LSM303C_CTRL_REG4_A, 0x05)
-        
 
     def set_bidi_mode(self, value=True):
         self.mag.bidi_mode = value
         self.accel.bidi_mode = value
-        
+
     def init(self):
         self.mag.init()
         self.accel.init()
-        
+
     def exists(self):
         self.mag.exists()
         self.accel.exists()

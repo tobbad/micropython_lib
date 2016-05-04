@@ -1,4 +1,3 @@
-
 CTRL_REG1_ADDR = const(0x20)
 CTRL_REG2_ADDR = const(0x21)
 CTRL_REG3_ADDR = const(0x22)
