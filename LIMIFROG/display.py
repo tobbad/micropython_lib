@@ -13,9 +13,7 @@ b = limifrog()
 disp = LimiFrogDisplay(b)
 acc= LSM6DS3()
 disp.on()
-const={
-    'lis3mdl':{'i2c_bus':2, 'i2c_addr':0x1C}
-}
+
 
 def clamp(x, vx, xmax, border, r):
     if x <= border+r:

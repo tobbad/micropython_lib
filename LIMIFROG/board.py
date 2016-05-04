@@ -3,14 +3,15 @@
 #
 import pyb
 
-const={
+sys_config={
     'lis3mdl':{'i2c_bus':2, 'i2c_addr':0x1C},
     'lps25h':{'i2c_bus':2, 'i2c_addr':0x5C},
     'lsm6ds3':{'i2c_bus':2, 'i2c_addr': 0x6A},
+    'vl6180x':{'i2c_bus':2, 'i2c_addr': 0x29},
 }
 
 
-class limifrog():
+class board():
 
     def __init__(self):
         self.__buck = pyb.Pin('B6', pyb.Pin.OUT_PP)
@@ -32,7 +33,8 @@ class limifrog():
             pin.low()
 
     def __repr__(self):
-        res = ("vddh: %s" % ("ON" if self.vddh() else "OFF"),)
+        res = ("Limifrog board:",)
+        res = res + ("vddh: %s" % ("ON" if self.vddh() else "OFF"),)
         res = res + ("buck: %s" % ("ON" if self.buck() else "OFF"),)
         res = res + ("ldo : %s" % ("ON" if self.ldo() else "OFF"),)
         res = res + ("lcd : %s" % ("ON" if self.lcd() else "OFF"),)

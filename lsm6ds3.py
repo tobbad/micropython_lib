@@ -10,8 +10,6 @@ class LSM6DS3(COM_I2C, multibyte):
     WHO_IAM_ANSWER   = 0x69
     WHO_IAM_REG = 0xF
 
-    debug = False
-
     def __init__(self, communication, dev_selector):
         super(LSM6DS3, self).__init__(communication, dev_selector, self.ADDR_MODE_8, self.TRANSFER_MSB_FIRST)
         g_odr='13HZ'
@@ -20,7 +18,7 @@ class LSM6DS3(COM_I2C, multibyte):
         gy_odr='13HZ'
         gy_full_scale_dps='2000'
         gy_axis_en='XYZ'
-        
+
         tmp = self.read_u8(LSM6DS3_XG_CTRL3_C)
         tmp &= ~LSM6DS3_XG_IF_INC_MASK
         tmp |= LSM6DS3_XG_IF_INC
