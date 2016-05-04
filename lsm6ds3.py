@@ -72,7 +72,15 @@ class LSM6DS3(COM_I2C, multibyte):
         tmp |= LSM6DS3_G_AXIS_EN['Z'] if 'Z' in gy_axis_en else 0
         self.write_u8(LSM6DS3_XG_CTRL10_C, tmp)
 
+    def set_multi_byte(self, addr):
+        ''' Multi byte read is configured in register CTRL3'''
+        return addr
+
     def accel(self):
+        '''
+        Returns the acceleration in 10^(-3) g.
+        1 g = 9.81 m/s^2
+        '''
         # Get raw data
         x =self.read_s16(LSM6DS3_XG_OUT_X_L_XL)
         y =self.read_s16(LSM6DS3_XG_OUT_Y_L_XL)

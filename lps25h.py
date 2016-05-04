@@ -25,22 +25,25 @@ class LPS25H(COM_I2C, multibyte):
         self.__t = -273.15
         self.__p  = 0.0
         self.__p0 = 1013.25     # mBar
-        self.__hs = 7988.203
+        self.__T0 = 288.15
+        self.__Tgrad = 0.0065
+        self.__exp = 1.0/5.255
 
     def __measure(self):
-        self.__t = 42.5+self.read_s16(TEMP_OUT_L|(1<<7))/480.0
-        self.__p = self.read_s24(PRESS_OUT_XL|(1<<7))/4096.0
+        self.__t = 42.5+self.read_s16(TEMP_OUT_L)/480.0
+        self.__p = self.read_s24(PRESS_OUT_XL)/4096.0
 
     def value(self):
         self.__measure()
         return self.__p
 
     def unit(self):
-        return 'Pa'
+        return 'mBar'
 
     def height(self):
+        ''' Using international hight formula '''
         self.__measure()
-        height =self.__hs*log(self.__p0/self.__p)
+        height =self.__T0/self.__Tgrad*(1.0 - pow(self.__p/self.__p0, self.__exp))
         return height
 
     def temperature(self):

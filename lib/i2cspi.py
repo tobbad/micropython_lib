@@ -61,7 +61,14 @@ class COM_SERIAL():
 
 class COM_I2C(COM_SERIAL):
 
+    MULTIPLEBYTE_CMD = 0x80
+
+    def set_multi_byte(self, addr):
+        return (addr | self.MULTIPLEBYTE_CMD)
+
     def read_binary(self, reg_addr, byte_cnt):
+        if byte_cnt > 1:
+            reg_addr = self.set_multi_byte(reg_addr)
         ans = self.com.mem_read(data=byte_cnt, addr=self.selector, memaddr=reg_addr, addr_size=self.addr_size)
         res = struct.unpack("B"*byte_cnt, ans)
         if self.DEBUG:
@@ -74,7 +81,7 @@ class COM_I2C(COM_SERIAL):
         self.com.mem_write(data=data, addr=self.selector, memaddr=reg_addr, addr_size=self.addr_size)
 
     def __str__(self):
-        return "I2C @ 0x%02x" % self.i2c_addr
+        return "I2C @ 0x%02x" % self.selector
 
 
 class COM_SPI(COM_SERIAL):
