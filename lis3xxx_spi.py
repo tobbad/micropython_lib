@@ -40,7 +40,7 @@ LIS3DSH_CTRL_REG5_CONF = const(0b00000000)
 class LIS3XXX(COM_SPI, multibyte):
 
     def __init__(self, communication, dev_selector):
-        super(LIS302DL, self).__init__(communication, dev_selector)
+        super(LIS3XXX, self).__init__(communication, dev_selector)
         self.init()
 
     def x(self):
