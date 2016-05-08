@@ -13,9 +13,7 @@ class COM_SERIAL():
     TRANSFER_MSB_FIRST = True
     TRANSFER_LSB_FIRST = False
 
-    def __init__(self, communication, dev_selector,
-                 addr_size=self.ADDR_MODE_8,
-                 msb_first=self.TRANSFER_MSB_FIRST):
+    def __init__(self, communication, dev_selector, addr_size, msb_first):
         if addr_size not in (self.ADDR_MODE_8, self.ADDR_MODE_16):
             raise Exception("Address size not 8 or 16 not supported")
         self.com = communication
@@ -97,9 +95,7 @@ class COM_SPI(COM_SERIAL):
     READ_CMD = 0x80
     MULTIPLEBYTE_CMD = 0x40
 
-    def __init__(self, communication, dev_selector
-                 addr_size=self.ADDR_MODE_8,
-                 msb_first=self.TRANSFER_MSB_FIRST):
+    def __init__(self, communication, dev_selector, addr_size, msb_first):
         super(COM_SPI, self).__init__(communication, dev_selector,
                                       addr_size, msb_first)
         self.__bidi_mode = False

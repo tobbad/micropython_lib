@@ -49,7 +49,9 @@ class LSM303C_MAG(COM_SPI, multibyte):
         (LSM303C_CTRL_REG5_M, LSM303C_CTRL_REG5_M_CONF))
 
     def __init__(self, communication, dev_selector):
-        super(LSM303C_MAG, self).__init__(communication, dev_selector)
+        super(LSM303C_MAG, self).__init__(communication, dev_selector,
+                                          addr_size=self.ADDR_MODE_8,
+                                          msb_first=self.TRANSFER_MSB_FIRST)
 
     def set_multi_byte(self, addr):
         multi_byte_mask = 0x04
@@ -106,7 +108,9 @@ class LSM303C_ACCEL(COM_SPI, multibyte):
     ]
 
     def __init__(self, communication, dev_selector):
-        super(LSM303C_ACCEL, self).__init__(communication, dev_selector)
+        super(LSM303C_ACCEL, self).__init__(communication, dev_selector,
+                                            addr_size=self.ADDR_MODE_8,
+                                            msb_first=self.TRANSFER_MSB_FIRST)
 
     def set_multi_byte(self, addr):
         multi_byte_mask = 0x04
