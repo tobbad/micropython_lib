@@ -1,6 +1,4 @@
-#
-# Constatns take from LBF_OnBoard_chip_aliases
-#
+
 from i2cspi import COM_I2C
 from multibyte import multibyte
 from lsm6ds3_const import *
@@ -20,8 +18,8 @@ class LSM6DS3(COM_I2C, multibyte):
         tmp |= LSM6DS3_XG_IF_INC
         self.write_u8(LSM6DS3_XG_CTRL3_C, tmp)
         # Disable FIFO
-        self.write(LSM6DS3_XG_FIFO_CTRL5,
-                   LSM6DS3_XG_FIFO_MODE | LSM6DS3_XG_FIFO_ODR['NA'])
+        self.write(LSM6DS3_XG_FIFO_CTRL5,\
+                   LSM6DS3_XG_FIFO_MODE['BYPASS'] | LSM6DS3_XG_FIFO_ODR['NA'])
         # Setup defaults on gyro and accel
         self.accel_ctrl()
         self.gyro_ctrl()
