@@ -6,8 +6,8 @@ from  cs43l22 import CS43L22
 from lis3xxx_spi import LIS302DL
 from board import sys_config
 
-spi = pyb.SPI(1, pyb.SPI.MASTER, baudrate=600000, polarity = 1, phase = 1)
-cs_accel = pyb.Pin('PE3', pyb.Pin.OUT_PP)
+spi = pyb.SPI(sys_config['lis302dl']['spi_bus'], pyb.SPI.MASTER, baudrate=600000, polarity = 1, phase = 1)
+cs_accel = pyb.Pin(sys_config['lis302dl']['spi_cs'], pyb.Pin.OUT_PP)
 
 acc = LIS302DL(spi, cs_accel)
 print("Acceleration  (%5.3f, %5.3f, %5.3f)" % acc.xyz())

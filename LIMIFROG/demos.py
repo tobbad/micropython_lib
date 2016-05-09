@@ -1,19 +1,5 @@
 # -*- coding: utf-8 -*-
-
-
-
-from limifrog import limifrog
-from SEPS525 import LimiFrogDisplay
-from urandom import randint
-from LSM6DS3 import LSM6DS3
 import pyb
-
-
-b = limifrog()
-disp = LimiFrogDisplay(b)
-acc= LSM6DS3()
-disp.on()
-
 
 def clamp(x, vx, xmax, border, r):
     if x <= border+r:
@@ -25,7 +11,7 @@ def clamp(x, vx, xmax, border, r):
     return x, vx
 
 
-def gravity():
+def gravity(disp, accel):
     border = 5
     color = 0x0FF0
     dt = 0.1
@@ -41,7 +27,7 @@ def gravity():
         disp.box(xo-r, yo-r, xo+r, yo+r+1, 0)
         disp.circle(xn, yn, r, color)
         xo , yo = xn, yn
-        ax, ay, az = acc.accel()
+        ax, ay, az = accel.xyz()
         ay *= -1
         vx = vx + ax * dt
         vy = vy + ay * dt
@@ -51,11 +37,8 @@ def gravity():
         y, vy = clamp(y, vy, disp.YSIZE-1, border, r)
 
 
-def colors():
+def colors(disp):
     while True:
         color = randint(0, 2**16-1)
         disp.box(0, 0, 159, 127, color)
         #pyb.delay(200)
-
-
-gravity()

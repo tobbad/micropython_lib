@@ -165,7 +165,7 @@ class LSM303C():
         self.accel.bidi_mode = True
         self.accel.init()
 
-    def set_bidi_mode(self, value=True):
+    def bidi_mode(self, value=True):
         self.mag.bidi_mode = value
         self.accel.bidi_mode = value
 

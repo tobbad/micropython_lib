@@ -4,13 +4,14 @@ from multibyte import multibyte
 from lsm6ds3_const import *
 
 
-class LSM6DS3(COM_I2C, multibyte):
+
+class ACCGYRO(COM_I2C, multibyte):
 
     WHO_IAM_ANSWER = 0x69
     WHO_IAM_REG = 0xF
 
     def __init__(self, communication, dev_selector):
-        super(LSM6DS3, self).__init__(communication, dev_selector,
+        super(ACCGYRO, self).__init__(communication, dev_selector,
                                       self.ADDR_MODE_8,
                                       self.TRANSFER_MSB_FIRST)
         # enable autoincrement
@@ -20,11 +21,19 @@ class LSM6DS3(COM_I2C, multibyte):
         # Disable FIFO
         self.write(LSM6DS3_XG_FIFO_CTRL5,\
                    LSM6DS3_XG_FIFO_MODE['BYPASS'] | LSM6DS3_XG_FIFO_ODR['NA'])
-        # Setup defaults on gyro and accel
-        self.accel_ctrl()
-        self.gyro_ctrl()
 
-    def accel_ctrl(self, g_odr='13HZ', g_full_scale_g='2G', g_axis_en="XYZ"):
+    def set_multi_byte(self, addr):
+        ''' Multi byte read is configured in register CTRL3'''
+        return addr
+
+    def temperature(self):
+        t = self.read_s16(LSM6DS3_TEMP_OUT_L)
+        return 25.0 + t / 16.0
+
+
+class ACCEL(ACCGYRO):
+    
+    def ctrl(self, g_odr='13HZ', g_full_scale_g='2G', g_axis_en="XYZ"):
         g_odr = g_odr.upper()
         g_full_scale_g = g_full_scale_g.upper()
         g_axis_en = g_axis_en.upper()
@@ -43,7 +52,24 @@ class LSM6DS3(COM_I2C, multibyte):
         tmp |= LSM6DS3_XL_AXIS_EN['Z'] if 'Z' in g_axis_en else 0
         self.write_u8(LSM6DS3_XG_CTRL9_XL, tmp)
 
-    def gyro_ctrl(self, gy_odr='13HZ', gy_full_scale_dps='2000',
+    def xyz(self):
+        '''
+        Returns the acceleration in 10^(-3) g.
+        1 g = 9.81 m/s^2
+        '''
+        # Get raw data
+        x = self.read_s16(LSM6DS3_XG_OUT_X_L_XL)
+        y = self.read_s16(LSM6DS3_XG_OUT_Y_L_XL)
+        z = self.read_s16(LSM6DS3_XG_OUT_Z_L_XL)
+        # Get sensitivity
+        sens = (self.read_u8(LSM6DS3_XG_CTRL1_XL) & LSM6DS3_XL_FS['MASK'])
+        sens = (1 << (sens >> LSM6DS3_XL_FS['SHIFT'])) * 0.061
+        return (x*sens, y*sens, z*sens)
+
+
+class GYRO(ACCGYRO):
+    
+    def ctrl(self, gy_odr='13HZ', gy_full_scale_dps='2000',
                   gy_axis_en='XYZ'):
         gy_odr = gy_odr.upper()
         gy_full_scale_dps = gy_full_scale_dps.upper()
@@ -62,33 +88,8 @@ class LSM6DS3(COM_I2C, multibyte):
         tmp |= LSM6DS3_G_AXIS_EN['Y'] if 'Y' in gy_axis_en else 0
         tmp |= LSM6DS3_G_AXIS_EN['Z'] if 'Z' in gy_axis_en else 0
         self.write_u8(LSM6DS3_XG_CTRL10_C, tmp)
-
-    def dump_ctrl(self):
-        print('DEFAULT_CONF = (')
-        for addr in range(6, 0x19):
-            val = self.read_u8(addr)
-            print("(0x%02x, 0x%02x)" % (addr, val))
-        print(")")
-
-    def set_multi_byte(self, addr):
-        ''' Multi byte read is configured in register CTRL3'''
-        return addr
-
-    def accel(self):
-        '''
-        Returns the acceleration in 10^(-3) g.
-        1 g = 9.81 m/s^2
-        '''
-        # Get raw data
-        x = self.read_s16(LSM6DS3_XG_OUT_X_L_XL)
-        y = self.read_s16(LSM6DS3_XG_OUT_Y_L_XL)
-        z = self.read_s16(LSM6DS3_XG_OUT_Z_L_XL)
-        # Get sensitivity
-        sens = (self.read_u8(LSM6DS3_XG_CTRL1_XL) & LSM6DS3_XL_FS['MASK'])
-        sens = (1 << (sens >> LSM6DS3_XL_FS['SHIFT'])) * 0.061
-        return (x*sens, y*sens, z*sens)
-
-    def gyro(self):
+    
+    def xyz(self):
         # Get raw data
         x = self.read_s16(LSM6DS3_XG_OUT_X_L_G)
         y = self.read_s16(LSM6DS3_XG_OUT_Y_L_G)
@@ -109,6 +110,14 @@ class LSM6DS3(COM_I2C, multibyte):
             raise Exception("Unknown gyro sensitivity 0x%02x" % (sens))
         return (x*sens, y*sens, z*sens)
 
+class LSM6DS3():
+
+    def __init__(self, communication, dev_selector):
+         # Setup defaults on gyro and accel
+        self.accel = ACCEL(communication, dev_selector)
+        self.accel.ctrl()
+        self.gyro = GYRO(communication, dev_selector)
+        self.accel.ctrl()
+
     def temperature(self):
-        t = self.read_s16(LSM6DS3_TEMP_OUT_L)
-        return 25.0 + t / 16.0
+        return self.accel.temperature()

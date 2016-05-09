@@ -4,8 +4,8 @@
 import pyb
 import struct
 
-class com():
-
+class COM():
+    
     debug = False
 
     def __init__(self, spi, cs, rs):
@@ -18,33 +18,36 @@ class com():
         self.__rs.value(0)
         self.__spi.send(0x22)
         self.__rs.value(1)
-        # Switch to 16 bit trasnfer ?
+        # Switch to 16 bit transfer ?
 
     def __data_end(self):
-        # Switch back to 8 bit trasnfer ?
-        self.__rs.value(1)
+        # Switch back to 8 bit transfer ?
+        self.__cs.value(1)
 
     def write_reg(self, addr, value):
         self.__cs.value(0)
         self.__rs.value(0)
         self.__spi.send(addr)
         self.__rs.value(1)
+        self.__cs.value(1)
+        
+        self.__cs.value(0)
         self.__spi.send(value)
         self.__cs.value(1)
 
     def send_cmd(self, cmd):
-        self.__cs.value(0)
         self.__rs.value(0)
+        self.__cs.value(0)
         self.__spi.send(cmd)
-        self.__rs.value(1)
         self.__cs.value(1)
+        self.__rs.value(1)
 
     def send_data(self, data):
         self.__data_start()
         self.__spi.send(data)
         self.__data_end()
 
-class seps525():
+class SEPS525():
 
     # Copy modify paste from LBF_OLED_Init default configuration which is
     # taken from DD-160128FC-1A.pdf
@@ -85,9 +88,9 @@ class seps525():
              (0x35, 0x00),     # Screen saver row start
              (0x36, 0x7F))     # Screen saver row end
 
-    def __init__(self, _com):
+    def __init__(self, spi, cs, rs):
         self.__buffer = bytearray(self.XSIZE*self.YSIZE*2)
-        self.__com = _com
+        self.__com = COM(spi, cs, rs)
         self.__com.write_reg(0x04, 0x01)
         pyb.delay(10)
         self.__com.write_reg(0x04, 0x00)
@@ -195,35 +198,3 @@ class seps525():
     def clear(self):
         self.box(0, 0, self.XSIZE, self.YSIZE, 0)
 
-class LimiFrogDisplay(seps525):
-
-    XSIZE = const(160)
-    YSIZE = const(128)
-
-    def __init__(self, board):
-        self.__board = board
-        self.__reset = pyb.Pin('B1', pyb.Pin.OUT)
-        rs = pyb.Pin('C4', pyb.Pin.OUT)
-        cs = pyb.Pin('C5', pyb.Pin.OUT)
-        spi = pyb.SPI(1, pyb.SPI.MASTER, baudrate=80000000, polarity=1, phase=0)
-        self.__reset.value(0)
-        rs.value(1)
-        cs.value(1)
-        self.__reset.value(1)
-        pyb.delay(10)
-        self.__reset.value(0)
-        pyb.delay(2)
-        self.__reset.value(1)
-        pyb.delay(2)
-        _com = com(spi, cs, rs)
-        super(LimiFrogDisplay, self).__init__(_com)
-
-    def on(self):
-        self.__board.lcd(1)
-        pyb.delay(100)
-        self.__com.write_reg(0x06, 0x01)
-
-    def off(self):
-        self.__com.write_reg(0x06, 0x00)
-        self.__board.lcd(0)
-        pyb.delay(100)
