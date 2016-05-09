@@ -5,7 +5,7 @@ import pyb
 BEEPTONE_ADDR = const(0x1e)
 
 
-class CS43L22(COM_I2C):
+class CS43L22(COM_I2C, multibyte):
 
     WHO_IAM_REG = 0x01
     WHOAMI_ANS = 0xE0
@@ -23,7 +23,9 @@ class CS43L22(COM_I2C):
         pyb.delay(10)
         self.reset.high()
         pyb.delay(10)
-        super(CS43L22, self).__init__(communication, dev_selector)
+        super(CS43L22, self).__init__(communication, dev_selector,
+                                      addr_size=self.ADDR_MODE_8,
+                                      msb_first=self.TRANSFER_MSB_FIRST)
 
     def init(self):
         print([hex(i) for i in self.com.scan()])

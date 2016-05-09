@@ -99,6 +99,7 @@ class COM_SPI(COM_SERIAL):
         super(COM_SPI, self).__init__(communication, dev_selector,
                                       addr_size, msb_first)
         self.__bidi_mode = False
+        self.__use_dir = 'dir' in self.__dict__
 
     @property
     def bidi_mode(self):
@@ -116,14 +117,15 @@ class COM_SPI(COM_SERIAL):
         if byte_cnt > 1:
             reg_addr = self.set_multi_byte(reg_addr)
         self.selector.low()
-        if self.__bidi_mode:
+        if self.__bidi_mode and self.__use_dir:
             if self.DEBUG:
                 print("Set one line mode")
             self.com.dir(self.com.DIRECTION_ONE_LINE)
         else:
             if self.DEBUG:
                 print("Set two line mode")
-            self.com.dir(self.com.DIRECTION_TWO_LINES)
+            if self.__use_dir:
+                self.com.dir(self.com.DIRECTION_TWO_LINES)
         self.com.send(reg_addr)
         buf = self.com.recv(byte_cnt)
         self.selector.high()
@@ -139,11 +141,13 @@ class COM_SPI(COM_SERIAL):
         if self.__bidi_mode:
             if self.DEBUG:
                 print("Set one line mode")
-            self.com.dir(self.com.DIRECTION_ONE_LINE)
+            if self.__use_dir:
+                self.com.dir(self.com.DIRECTION_ONE_LINE)
         else:
             if self.DEBUG:
                 print("Set two line mode")
-            self.com.dir(self.com.DIRECTION_TWO_LINES)
+            if self.__use_dir:
+                self.com.dir(self.com.DIRECTION_TWO_LINES)
         self.com.send(reg_addr)
         for b in data:
             self.com.send(b)

@@ -40,17 +40,19 @@ LIS3DSH_CTRL_REG5_CONF = const(0b00000000)
 class LIS3XXX(COM_SPI, multibyte):
 
     def __init__(self, communication, dev_selector):
-        super(LIS3XXX, self).__init__(communication, dev_selector)
+        super(LIS3XXX, self).__init__(communication, dev_selector,
+                                      addr_size=self.ADDR_MODE_8,
+                                      msb_first=self.TRANSFER_MSB_FIRST)
         self.init()
 
     def x(self):
-        return self.read_s8(OUT_X_ADDR, 1)*self.sensitivity
+        return self.read_s8(OUT_X_ADDR)*self.sensitivity
 
     def y(self):
-        return self.read_s8(OUT_Y_ADDR, 1)*self.sensitivity
+        return self.read_s8(OUT_Y_ADDR)*self.sensitivity
 
     def z(self):
-        return self.read_s8(OUT_Z_ADDR, 1)*self.sensitivity
+        return self.read_s8(OUT_Z_ADDR)*self.sensitivity
 
     def xyz(self):
         return (self.x(), self.y(), self.z())

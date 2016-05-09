@@ -2,24 +2,18 @@
 # Main file for STM32F4DISCOVERY
 #
 import pyb
-from staccel import STAccel
-acc = STAccel()
+from  cs43l22 import CS43L22
+from lis3xxx_spi import LIS302DL
+from board import sys_config
 
-def setupPins():
-    i2cAddr = pyb.Pin('PA6', pyb.Pin.OUT_PP, pyb.Pin.PULL_NONE)
-    i2cAddr.low()
-    conf = pyb.Pin('PE3', pyb.Pin.OUT_PP, pyb.Pin.PULL_NONE)
-    conf.high()
-    audioReset = pyb.Pin(pyb.Pin.board.PD4, pyb.Pin.OUT_PP)
-    audioReset.low()
-    pyb.delay(100)
-    audioReset.high()
+spi = pyb.SPI(1, pyb.SPI.MASTER, baudrate=600000, polarity = 1, phase = 1)
+cs_accel = pyb.Pin('PE3', pyb.Pin.OUT_PP)
 
-def run():
-    while True:
-        print("%5.2g %5.2f %5.2f" % (acc.x(), acc.y(), acc.z()))
-        pyb.delay(100)
+acc = LIS302DL(spi, cs_accel)
+print("Acceleration  (%5.3f, %5.3f, %5.3f)" % acc.xyz())
 
 
-from  CS43L22 import CS43L22
-snd = CS43L22()
+audioReset = pyb.Pin(sys_config['cs43l22']['resetPin'], pyb.Pin.OUT_PP)
+i2c = pyb.I2C(sys_config['cs43l22']['i2c_bus'], pyb.I2C.MASTER, baudrate=100000)
+snd = CS43L22(i2c, sys_config['cs43l22']['i2c_addr'], audioReset)
+snd.init()
