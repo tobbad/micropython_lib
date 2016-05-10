@@ -1,8 +1,6 @@
-
 from i2cspi import COM_I2C
 from multibyte import multibyte
 from lsm6ds3_const import *
-
 
 
 class ACCGYRO(COM_I2C, multibyte):
@@ -19,7 +17,7 @@ class ACCGYRO(COM_I2C, multibyte):
         tmp |= LSM6DS3_XG_IF_INC
         self.write_u8(LSM6DS3_XG_CTRL3_C, tmp)
         # Disable FIFO
-        self.write(LSM6DS3_XG_FIFO_CTRL5,\
+        self.write(LSM6DS3_XG_FIFO_CTRL5,
                    LSM6DS3_XG_FIFO_MODE['BYPASS'] | LSM6DS3_XG_FIFO_ODR['NA'])
 
     def set_multi_byte(self, addr):
@@ -32,7 +30,7 @@ class ACCGYRO(COM_I2C, multibyte):
 
 
 class ACCEL(ACCGYRO):
-    
+
     def ctrl(self, g_odr='13HZ', g_full_scale_g='2G', g_axis_en="XYZ"):
         g_odr = g_odr.upper()
         g_full_scale_g = g_full_scale_g.upper()
@@ -68,9 +66,9 @@ class ACCEL(ACCGYRO):
 
 
 class GYRO(ACCGYRO):
-    
+
     def ctrl(self, gy_odr='13HZ', gy_full_scale_dps='2000',
-                  gy_axis_en='XYZ'):
+             gy_axis_en='XYZ'):
         gy_odr = gy_odr.upper()
         gy_full_scale_dps = gy_full_scale_dps.upper()
         gy_axis_en = gy_axis_en.upper()
@@ -88,7 +86,7 @@ class GYRO(ACCGYRO):
         tmp |= LSM6DS3_G_AXIS_EN['Y'] if 'Y' in gy_axis_en else 0
         tmp |= LSM6DS3_G_AXIS_EN['Z'] if 'Z' in gy_axis_en else 0
         self.write_u8(LSM6DS3_XG_CTRL10_C, tmp)
-    
+
     def xyz(self):
         # Get raw data
         x = self.read_s16(LSM6DS3_XG_OUT_X_L_G)
@@ -110,10 +108,11 @@ class GYRO(ACCGYRO):
             raise Exception("Unknown gyro sensitivity 0x%02x" % (sens))
         return (x*sens, y*sens, z*sens)
 
+
 class LSM6DS3():
 
     def __init__(self, communication, dev_selector):
-         # Setup defaults on gyro and accel
+        # Setup defaults on gyro and accel
         self.accel = ACCEL(communication, dev_selector)
         self.accel.ctrl()
         self.gyro = GYRO(communication, dev_selector)

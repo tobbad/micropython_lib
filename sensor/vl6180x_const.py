@@ -104,7 +104,8 @@ VL6180X_DEFAULT_CONF = (
     (0x01a7, 0x1f),
     (0x0030, 0x00),
     # Recommended settings from datasheet
-    # http:# www.st.com/st-web-ui/static/active/en/resource/technical/document/application_note/DM00122600.pdf
+    # http:# www.st.com/st-web-ui/static/active/en/resource/ \
+    #    technical/document/application_note/DM00122600.pdf
     # Enable Interrupts on Conversion Complete (any source),
     #  Set GPIO1 high when sample complete
     (VL6180X_SYSTEM_INTERRUPT_CONFIG_GPIO, (4 << 3) | (4)),
@@ -118,7 +119,8 @@ VL6180X_DEFAULT_CONF = (
     #  perform a single temperature calibration
     (VL6180X_SYSRANGE_VHV_RECALIBRATE, 0x01),
     # Optional settings from datasheet
-    # http:# www.st.com/st-web-ui/static/active/en/resource/technical/document/application_note/DM00122600.pdf
+    # http:# www.st.com/st-web-ui/static/active/en/resource/ \
+    #    technical/document/application_note/DM00122600.pdf
     #  Set default ranging inter-measurement period to 100ms
     (VL6180X_SYSRANGE_INTERMEASUREMENT_PERIOD, 0x09),
     #  Set default ALS inter-measurement period to 100ms

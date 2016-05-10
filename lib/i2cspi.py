@@ -108,13 +108,15 @@ class COM_SPI(COM_SERIAL):
     @bidi_mode.setter
     def bidi_mode(self, mode):
         if self.__use_dir:
-            newMode=self.com.DIRECTION_ONE_LINE if mode else self.com.DIRECTION_TWO_LINES
+            newMode = self.com.DIRECTION_ONE_LINE if mode \
+                      else self.com.DIRECTION_TWO_LINES
             if self.DEBUG:
-                print("Set %s mode" % ('one line' if mode else "two lines"))            
+                print("Set %s mode" % ('one line' if mode else "two lines"))
             self.com.dir(newMode)
             self.__bidi_mode = mode
         else:
-            print("Bidirectional Mode not supported by this version of micropython")
+            print("Bidirectional Mode not supported"
+                  " by this version of micropython")
             print("Please update.")
 
     def set_multi_byte(self, addr):
