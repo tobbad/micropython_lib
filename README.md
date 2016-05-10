@@ -10,7 +10,6 @@ Micropython drivers for diffrent I2C/SPI chips.
 | lib     | Generic SPI/I2C library |
 | sensor  | Different sensors |
 | sound   | Sound chips |
-| test    | Testframe work for automatic deploy and test of micropython builds (Work in progress) |
 | tools   | Different tools to support micropython code development. |
 
 These drivers just provide the basic support for the sensors and are work in progress.
