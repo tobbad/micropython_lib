@@ -17,6 +17,7 @@ then
     cp ${ROOT}/sensor/lps25h* ${TARGET}
     cp ${ROOT}/sensor/vl6180x* ${TARGET}
     cp ${ROOT}/sensor/lsm6ds3* ${TARGET}
+    cp ${ROOT}/display/seps525* ${TARGET}
 fi
 if  [ "x$SEL" == "x2" ]
 then
