@@ -116,7 +116,7 @@ class LSM6DS3():
         self.accel = ACCEL(communication, dev_selector)
         self.accel.ctrl()
         self.gyro = GYRO(communication, dev_selector)
-        self.accel.ctrl()
+        self.gyro.ctrl()
 
     def temperature(self):
         return self.accel.temperature()

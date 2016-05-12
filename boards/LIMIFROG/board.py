@@ -6,7 +6,7 @@ from seps525 import SEPS525
 
 sys_config = {
     'lis3mdl': {'i2c_bus': 2, 'i2c_addr': 0x1C},
-    'lps25h'  {'i2c_bus': 2, 'i2c_addr': 0x5C},
+    'lps25h': {'i2c_bus': 2, 'i2c_addr': 0x5C},
     'lsm6ds3': {'i2c_bus': 2, 'i2c_addr': 0x6A},
     'vl6180x': {'i2c_bus': 2, 'i2c_addr': 0x29},
     'cs43l22': {'i2c_bus': 1, 'i2c_addr': 0x4A, 'resetPin': 'D4'},
