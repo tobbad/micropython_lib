@@ -1,12 +1,14 @@
 #
 #
 #
+
+
 class Frame_Buffer():
 
     FB_SIZE = (16,)
 
     def __init__(self, xsize, ysize, pixel_size):
-        if not pixel_size in self.FB_SIZE:
+        if pixel_size not in self.FB_SIZE:
             raise Exception("Pixelsize %d not supported" % (pixel_size))
         self.__buffer = bytearray(xsize*ysize*pixel_size)
         self.__color = 0x0000
@@ -21,7 +23,7 @@ class Frame_Buffer():
     @micropython.viper
     def __fill_16(self, color: int, byte_cnt: int):
         bPtr = ptr16(self.__buffer)
-        for i in range(byte_cnt>>1):
+        for i in range(byte_cnt/2):
             bPtr[i] = color
 
     def trim_region(self, xmin, ymin, xmax, ymax):
@@ -33,13 +35,12 @@ class Frame_Buffer():
         ymin = max(ymin, 0)
         ymax = min(ymax, self.YSIZE-1)
         ymax = max(ymax, 0)
-        if (ymin>ymax):
+        if (ymin > ymax):
             ymin, ymax = ymax, ymin
-        if (xmin>xmax):
+        if (xmin > xmax):
             xmin, xmax = xmax, xmin
         return xmin, ymin, xmax, ymax
 
     def box(self, xmin, ymin, xmax, ymax, color):
         size = self.set_region(xmin, xmax, ymin, ymax)
         self.__mem_fill(color, size)
-

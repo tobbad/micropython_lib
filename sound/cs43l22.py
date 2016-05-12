@@ -23,9 +23,9 @@ class CS43L22(COM_I2C, multibyte):
         pyb.delay(10)
         self.reset.high()
         pyb.delay(10)
-        super(CS43L22, self).__init__(communication, dev_selector,
-                                      addr_size=self.ADDR_MODE_8,
-                                      msb_first=self.TRANSFER_MSB_FIRST)
+        super().__init__(communication, dev_selector,
+                         addr_size=self.ADDR_MODE_8,
+                         msb_first=self.TRANSFER_MSB_FIRST)
 
     def init(self):
         print([hex(i) for i in self.com.scan()])

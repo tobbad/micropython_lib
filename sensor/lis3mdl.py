@@ -34,9 +34,9 @@ class LIS3MDL(COM_I2C, multibyte):
         (CTRL_REG4_ADDR, 0x0C)]
 
     def __init__(self, communication, dev_selector):
-        super(LIS3MDL, self).__init__(communication, dev_selector,
-                                      addr_size=self.ADDR_MODE_8,
-                                      msb_first=self.TRANSFER_MSB_FIRST)
+        super().__init__(communication, dev_selector,
+                         addr_size=self.ADDR_MODE_8,
+                         msb_first=self.TRANSFER_MSB_FIRST)
         gauss2tesla = 1.0/10000.0
         scale = 4.0
         self.__sensitivity = scale/SENSITIVITY_OF_MIN_SCALE*gauss2tesla

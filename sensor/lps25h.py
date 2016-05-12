@@ -21,9 +21,9 @@ class LPS25H(COM_I2C, multibyte):
         (CTRL_REG1_ADDR, 0xB0)]
 
     def __init__(self, communication, dev_selector):
-        super(LPS25H, self).__init__(communication, dev_selector,
-                                     addr_size=self.ADDR_MODE_8,
-                                     msb_first=self.TRANSFER_MSB_FIRST)
+        super().__init__(communication, dev_selector,
+                         addr_size=self.ADDR_MODE_8,
+                         msb_first=self.TRANSFER_MSB_FIRST)
         self.init()
         self.__t = -273.15
         self.__p = 0.0

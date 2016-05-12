@@ -96,8 +96,8 @@ class COM_SPI(COM_SERIAL):
     MULTIPLEBYTE_CMD = 0x40
 
     def __init__(self, communication, dev_selector, addr_size, msb_first):
-        super(COM_SPI, self).__init__(communication, dev_selector,
-                                      addr_size, msb_first)
+        super().__init__(communication, dev_selector,
+                         addr_size, msb_first)
         self.__bidi_mode = False
         self.__use_dir = 'dir' in dir(communication)
 
@@ -115,9 +115,7 @@ class COM_SPI(COM_SERIAL):
             self.com.dir(newMode)
             self.__bidi_mode = mode
         else:
-            print("Bidirectional Mode not supported"
-                  " by this version of micropython")
-            print("Please update.")
+            print("Bidirectional Mode not supported")
 
     def set_multi_byte(self, addr):
         return (addr | self.MULTIPLEBYTE_CMD)

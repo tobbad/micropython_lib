@@ -9,9 +9,9 @@ class ACCGYRO(COM_I2C, multibyte):
     WHO_IAM_REG = 0xF
 
     def __init__(self, communication, dev_selector):
-        super(ACCGYRO, self).__init__(communication, dev_selector,
-                                      self.ADDR_MODE_8,
-                                      self.TRANSFER_MSB_FIRST)
+        super().__init__(communication, dev_selector,
+                         self.ADDR_MODE_8,
+                         self.TRANSFER_MSB_FIRST)
         # enable autoincrement
         tmp = self.read_u8(LSM6DS3_XG_CTRL3_C)
         tmp |= LSM6DS3_XG_IF_INC

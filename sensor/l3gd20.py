@@ -51,9 +51,9 @@ class L3GD20(COM_SPI, multibyte):
         """
         Create a L3GD20 device.
         """
-        super(L3GD20, self).__init__(communication, dev_selector,
-                                     self.ADDR_MODE_8,
-                                     self.TRANSFER_MSB_FIRST)
+        super().__init__(communication, dev_selector,
+                         self.ADDR_MODE_8,
+                         self.TRANSFER_MSB_FIRST)
         self.init()
 
     def _update_dps_fs(self, new_fullscale):
@@ -72,7 +72,7 @@ class L3GD20(COM_SPI, multibyte):
         L3GD20_CTRL_REG4_ADDR the conversion factor is recalculated
         based on the register value.
         """
-        super(L3GD20, self).write_binary(reg_addr, data)
+        super().write_binary(reg_addr, data)
         if reg_addr == L3GD20_CTRL_REG4_ADDR:
             self._update_dps_fs(data[0])
 

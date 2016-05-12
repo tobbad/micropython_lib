@@ -10,7 +10,8 @@ frog = board()
 disp = display(frog)
 disp.on()
 
-i2c = pyb.I2C(sys_config['lis3mdl']['i2c_bus'], pyb.I2C.MASTER, baudrate=100000)
+i2c = pyb.I2C(sys_config['lis3mdl']['i2c_bus'],
+              pyb.I2C.MASTER, baudrate=100000)
 mems = LSM6DS3(i2c, sys_config['lsm6ds3']['i2c_addr'])
 print("Acceleration  (%.3e, %.3e, %.3e)" % mems.accel.xyz())
 print("Rotation      (%.3e, %.3e, %.3e)" % mems.gyro.xyz())

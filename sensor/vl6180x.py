@@ -15,9 +15,9 @@ class VL6180X(COM_I2C, multibyte):
     DEFAULT_CONF = VL6180X_DEFAULT_CONF
 
     def __init__(self, communication, dev_selector):
-        super(VL6180X, self).__init__(communication, dev_selector,
-                                      self.ADDR_MODE_16,
-                                      self.TRANSFER_MSB_FIRST)
+        super().__init__(communication, dev_selector,
+                         self.ADDR_MODE_16,
+                         self.TRANSFER_MSB_FIRST)
         data = self.read(VL6180X_SYSTEM_FRESH_OUT_OF_RESET)
         if data != 1:
             print("System already initialized")

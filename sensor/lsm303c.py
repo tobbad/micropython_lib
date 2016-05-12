@@ -29,7 +29,6 @@ Reading angular velocity:
 See:
     STM32Cube_FW_L4_V1.4.0/Drivers/BSP/Components/lsm303c/
 """
-import pyb
 from i2cspi import COM_SPI
 from multibyte import multibyte
 from lsm303c_const import *
@@ -49,9 +48,9 @@ class LSM303C_MAG(COM_SPI, multibyte):
         (LSM303C_CTRL_REG5_M, LSM303C_CTRL_REG5_M_CONF))
 
     def __init__(self, communication, dev_selector):
-        super(LSM303C_MAG, self).__init__(communication, dev_selector,
-                                          addr_size=self.ADDR_MODE_8,
-                                          msb_first=self.TRANSFER_MSB_FIRST)
+        super().__init__(communication, dev_selector,
+                         addr_size=self.ADDR_MODE_8,
+                         msb_first=self.TRANSFER_MSB_FIRST)
 
     def set_multi_byte(self, addr):
         multi_byte_mask = 0x04
@@ -76,7 +75,7 @@ class LSM303C_MAG(COM_SPI, multibyte):
         L3GD20_CTRL_REG4_ADDR the conversion factor is recalculated
         based on the register value.
         """
-        super(LSM303C_MAG, self).write_binary(reg_addr, data)
+        super().write_binary(reg_addr, data)
         if reg_addr == LSM303C_CTRL_REG2_M:
             self._update_dps_fs(data[0])
 
@@ -108,9 +107,9 @@ class LSM303C_ACCEL(COM_SPI, multibyte):
     ]
 
     def __init__(self, communication, dev_selector):
-        super(LSM303C_ACCEL, self).__init__(communication, dev_selector,
-                                            addr_size=self.ADDR_MODE_8,
-                                            msb_first=self.TRANSFER_MSB_FIRST)
+        super().__init__(communication, dev_selector,
+                         addr_size=self.ADDR_MODE_8,
+                         msb_first=self.TRANSFER_MSB_FIRST)
 
     def set_multi_byte(self, addr):
         multi_byte_mask = 0x04
@@ -135,7 +134,7 @@ class LSM303C_ACCEL(COM_SPI, multibyte):
         L3GD20_CTRL_REG4_ADDR the conversion factor is recalculated
         based on the register value.
         """
-        super(LSM303C_ACCEL, self).write_binary(reg_addr, data)
+        super().write_binary(reg_addr, data)
         if reg_addr == LSM303C_CTRL_REG4_A:
             self._update_dps_fs(data[0])
 

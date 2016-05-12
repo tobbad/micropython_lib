@@ -40,9 +40,9 @@ LIS3DSH_CTRL_REG5_CONF = const(0b00000000)
 class LIS3XXX(COM_SPI, multibyte):
 
     def __init__(self, communication, dev_selector):
-        super(LIS3XXX, self).__init__(communication, dev_selector,
-                                      addr_size=self.ADDR_MODE_8,
-                                      msb_first=self.TRANSFER_MSB_FIRST)
+        super().__init__(communication, dev_selector,
+                         addr_size=self.ADDR_MODE_8,
+                         msb_first=self.TRANSFER_MSB_FIRST)
         self.init()
 
     def x(self):
@@ -67,7 +67,7 @@ class LIS3DSH(LIS3XXX):
                     (LIS3DSH_CTRL_REG5_ADDR, LIS3DSH_CTRL_REG5_CONF))
 
     def __init__(self, communication, dev_selector):
-        super(LIS3DSH, self).__init__(communication, dev_selector)
+        super().__init__(communication, dev_selector)
         self.sensitivity = 0.06 * 256/1000
 
 
@@ -79,5 +79,5 @@ class LIS302DL(LIS3XXX):
     DEFAULT_CONF = ((LIS302DL_CTRL_REG1_ADDR, LIS302DL_CONF),)
 
     def __init__(self, communication, dev_selector):
-        super(LIS302DL, self).__init__(communication, dev_selector)
+        super().__init__(communication, dev_selector)
         self.sensitivity = 18.0/1000
