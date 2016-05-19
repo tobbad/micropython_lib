@@ -20,7 +20,7 @@
 # <http://www.gnu.org/licenses/>.
 
 #
-# Modified 19.5.2016 to support python board
+# Modified 19.5.2016 to support python board in micropython
 # T. Badertscher
 #
 
@@ -328,10 +328,11 @@ class SX127X(COM_SPI, multibyte):
                 Pout=17-(15-OutputPower) if PaSelect = 1 (PA_BOOST pin)
         :return: new register value
         """
-        loc = locals()
         current = self.get_pa_config()
-        loc = {s: current[s] if loc[s] is None else loc[s] for s in loc}
-        val = (loc['pa_select'] << 7) | (loc['max_power'] << 4) | (loc['output_power'])
+        current['pa_select'] = pa_select if pa_select is not None else current['pa_select']
+        current['max_power'] = max_power if max_power is not None else current['max_power']
+        current['output_power'] = output_power if output_power is not None else current['output_power']
+        val = (current['pa_select'] << 7) | (current['max_power'] << 4) | (current['output_power'])
         return self.write_u8(REG.LORA.PA_CONFIG, val)
 
     @getter(REG.LORA.PA_RAMP)
@@ -891,7 +892,7 @@ class SX127X(COM_SPI, multibyte):
         if self.DEBUG:
             print("MODE=SLEEP\n")
 
-    def str(self):
+    def __str__(self):
         # don't use __str__ while in any mode other that SLEEP or STDBY
         assert(self.mode == MODE.SLEEP or self.mode == MODE.STDBY)
 

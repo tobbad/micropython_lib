@@ -57,9 +57,6 @@ class COM_SERIAL():
     def unit(self):
         return "NA"
 
-    def __str__(self):
-        raise Exception("Function must be defined in derived class")
-
 
 class COM_I2C(COM_SERIAL):
 
