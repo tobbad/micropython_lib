@@ -65,6 +65,11 @@ class COM_I2C(COM_SERIAL):
 
     MULTIPLEBYTE_CMD = 0x80
 
+    def __init__(self, communication, dev_selector, addr_size, msb_first):
+        super().__init__(communication, dev_selector,
+                         addr_size, msb_first)
+        self.id = "I2C @ 0x%02x" % self.selector
+
     def set_multi_byte(self, addr):
         return (addr | self.MULTIPLEBYTE_CMD)
 
@@ -76,18 +81,15 @@ class COM_I2C(COM_SERIAL):
         res = struct.unpack("B"*byte_cnt, ans)
         if self.DEBUG:
             print("Read (%s) reg addr 0x%02x, data: %s" %
-                  (self, reg_addr, self.buf2Str(res)))
+                  (self.id, reg_addr, self.buf2Str(res)))
         return res
 
     def write_binary(self, reg_addr, data):
         if self.DEBUG:
             print("Write (%s) reg addr 0x%02x, data: %s" %
-                  (self, reg_addr, self.buf2Str(data)))
+                  (self.id, reg_addr, self.buf2Str(data)))
         self.com.mem_write(data=data, addr=self.selector,
                            memaddr=reg_addr, addr_size=self.addr_size)
-
-    def __str__(self):
-        return "I2C @ 0x%02x" % self.selector
 
 
 class COM_SPI(COM_SERIAL):
@@ -100,6 +102,8 @@ class COM_SPI(COM_SERIAL):
                          addr_size, msb_first)
         self.__bidi_mode = False
         self.__use_dir = 'dir' in dir(communication)
+        self.id = "SPI CS=Pin(%s)%s" % (self.selector.name(),
+                                      ", BiDi" if self.__bidi_mode else "")
 
     @property
     def bidi_mode(self):
@@ -130,7 +134,7 @@ class COM_SPI(COM_SERIAL):
         self.selector.high()
         if self.DEBUG:
             print("Read (%s) reg addr 0x%02x, data: %s" %
-                  (self, reg_addr, self.buf2Str(buf)))
+                  (self.id, reg_addr, self.buf2Str(buf)))
         return buf
 
     def write_binary(self, reg_addr, data):
@@ -142,10 +146,6 @@ class COM_SPI(COM_SERIAL):
             self.com.send(b)
         if self.DEBUG:
             print("Write (%s) reg addr 0x%02x, data: %s" %
-                  (self, reg_addr, self.buf2Str(data)))
+                  (self.id, reg_addr, self.buf2Str(data)))
         self.selector.high()
 
-    def __str__(self):
-        res = "SPI CS=Pin(%s)%s" % (self.selector.name(),
-                                    ", BiDi" if self.__bidi_mode else "")
-        return res

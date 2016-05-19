@@ -2,8 +2,8 @@
 TARGET=/media/badi/PYBFLASH/
 ROOT=../../
 rm ${TARGET}/*
-cp ${ROOT}/lib/* ${TARGET}
+cp ${ROOT}/lib/*.py ${TARGET}
 cp main.py ${TARGET}
 cp board.py ${TARGET}
 cp ${ROOT}/sensor/mma7660* ${TARGET}
-cp ${ROOT}/rf/sx127x* ${TARGET}
+cp ${ROOT}/rf/sx127x_* ${TARGET}

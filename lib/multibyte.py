@@ -14,12 +14,12 @@ class multibyte():
             raise Exception("LSB first not supported yet")
 
     def __read(self, reg_addr, cnt, signed=False, lsb_first=True):
-        res = self.read_binary(reg_addr, cnt)
+        data = [ i for i in self.read_binary(reg_addr, cnt)]
         if not lsb_first:
-            res.reverse()
-        res_conv = res[0]
+            data.reverse()
+        res_conv = data[0]
         for i in range(1, cnt):
-            res_conv += res[i] << (i*8)
+            res_conv += data[i] << (i*8)
         res = res_conv
         if signed:
             if res >= (1 << ((cnt*8)-1)):
@@ -54,12 +54,14 @@ class multibyte():
         return self.__read(addr, 4, signed=True)
 
     def __write(self, addr, value, cnt, lsb_first=True):
-        fmt = "B"*cnt
-        data = struct.pack(fmt, value)
+        data = []
+        for i in range(cnt):
+            data.append(value & 0xFF)
+            value >>= 8
         if not lsb_first:
             data.reverse()
         for a, v in zip(range(addr, addr+cnt), data):
-            self.write_binary(a, v)
+            self.write_u8(a, v)
 
     def write_u8(self, addr, value):
         data = struct.pack("B", value)
@@ -74,4 +76,4 @@ class multibyte():
         self.write_binary(addr, data)
 
     def write_u24_r(self, addr, value):
-        self.__write(addr, addr, value, cnt=3, lsb_first=False)
+        self.__write(addr, value, 3, lsb_first=False)
