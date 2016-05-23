@@ -43,7 +43,8 @@ class MODE:
     RXCONT   = 0x85
     RXSINGLE = 0x86
     CAD      = 0x87
-    FSK_LF_STDBY = 0x09     # needed for calibration
+    FSK_LF_STDBY = 0x09
+    FSK_SLEEP= 0x00
     FSK_STDBY= 0x01     # needed for calibration
 
 

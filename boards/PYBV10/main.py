@@ -21,13 +21,13 @@ accel = MMA7660(i2c, sys_config['mma7660']['i2c_addr'])
 print("Acceleration  (%.3e, %.3e, %.3e)" % accel.xyz())
 
 spi = pyb.SPI(sys_config['sx127x']['spi_bus'], pyb.SPI.MASTER,
-              baudrate=600000, polarity=1, phase=1)
+              baudrate=600000, polarity=0, phase=0)
 cs = pyb.Pin(sys_config['sx127x']['spi_cs'], pyb.Pin.OUT_PP)
 reset = pyb.Pin(sys_config['sx127x']['reset'], pyb.Pin.OUT_PP)
 dio_pins = ['Y6', 'Y7', 'Y8', 'Y4']
 
 rf = SX127X(spi, cs, reset, dio_pins, True)
 
-while True:
+while False:
     print("%3d, %3d, %3d" % ( accel.x(), accel.y(), accel.z()))
     pyb.delay(100)

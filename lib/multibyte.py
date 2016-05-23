@@ -35,6 +35,9 @@ class multibyte():
     def read_u16(self, addr):
         return self.__read(addr, 2)
 
+    def read_u16_r(self, addr):
+        return self.__read(addr, 2, lsb_first=False)
+
     def read_s16(self, addr):
         return self.__read(addr, 2, signed=True)
 

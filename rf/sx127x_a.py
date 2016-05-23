@@ -83,13 +83,14 @@ class SX127X(COM_SPI, multibyte):
     mode = None                       # the mode is backed up here
     verbose = True
     dio_mapping = [None] * 6          # store the dio mapping here
+    __register = dict()
 
     def __init__(self, communication, dev_selector, reset_pin,
                  dio_pin, verbose=True, do_calibration=True,
                  calibration_freq=868):
         """ Init the object
 
-        Send the device to sleep, read all registers, and do the calibration (if do_calibration=True)
+        Send the device to sleep and do the calibration (if do_calibration=True)
         :param verbose: Set the verbosity True/False
         :param calibration_freq: call rx_chain_calibration with this parameter. Default is 868
         :param do_calibration: Call rx_chain_calibration, default is True.
@@ -102,7 +103,6 @@ class SX127X(COM_SPI, multibyte):
         self.__reset_pin = reset_pin
         self.reset()
         self.__mode_mask = 0x87
-
         #
         # set the callbacks for DIO0..3 IRQs. DIO4/5 are not supported
         #
@@ -115,20 +115,20 @@ class SX127X(COM_SPI, multibyte):
             self.rx_chain_calibration(calibration_freq)
         # the FSK registers are set up exactly as modtronix do it:
         lookup_fsk = [
-            #[REG.FSK.LNA            , 0x23],
-            #[REG.FSK.RX_CONFIG      , 0x1E],
-            #[REG.FSK.RSSI_CONFIG    , 0xD2],
-            #[REG.FSK.PREAMBLE_DETECT, 0xAA],
-            #[REG.FSK.OSC            , 0x07],
-            #[REG.FSK.SYNC_CONFIG    , 0x12],
-            #[REG.FSK.SYNC_VALUE_1   , 0xC1],
-            #[REG.FSK.SYNC_VALUE_2   , 0x94],
-            #[REG.FSK.SYNC_VALUE_3   , 0xC1],
-            #[REG.FSK.PACKET_CONFIG_1, 0xD8],
-            #[REG.FSK.FIFO_THRESH    , 0x8F],
-            #[REG.FSK.IMAGE_CAL      , 0x02],
-            #[REG.FSK.DIO_MAPPING_1  , 0x00],
-            #[REG.FSK.DIO_MAPPING_2  , 0x30]
+            [REG.FSK.LNA            , 0x23],
+            [REG.FSK.RX_CONFIG      , 0x1E],
+            [REG.FSK.RSSI_CONFIG    , 0xD2],
+            [REG.FSK.PREAMBLE_DETECT, 0xAA],
+            [REG.FSK.OSC            , 0x07],
+            [REG.FSK.SYNC_CONFIG    , 0x12],
+            [REG.FSK.SYNC_VALUE_1   , 0xC1],
+            [REG.FSK.SYNC_VALUE_2   , 0x94],
+            [REG.FSK.SYNC_VALUE_3   , 0xC1],
+            [REG.FSK.PACKET_CONFIG_1, 0xD8],
+            [REG.FSK.FIFO_THRESH    , 0x8F],
+            [REG.FSK.IMAGE_CAL      , 0x02],
+            [REG.FSK.DIO_MAPPING_1  , 0x00],
+            [REG.FSK.DIO_MAPPING_2  , 0x30]
         ]
         self.set_mode(MODE.FSK_STDBY)
         for register_address, value in lookup_fsk:
@@ -307,18 +307,18 @@ class SX127X(COM_SPI, multibyte):
         val = int(f * 16384.)    # choose floor
         return self.write_u24_r(REG.LORA.FR_MSB, val)
 
+
+    __register['pa_config'] = dict(addr = REG.LORA.PA_CONFIG,
+                                    pa_select =[7,1],
+                                    max_power = [4,3],
+                                    output_power = [0,4])
+
     def get_pa_config(self, convert_dBm=False):
-        v = self.read_u8(REG.LORA.PA_CONFIG)
-        pa_select    = v >> 7
-        max_power    = v >> 4 & 0b111
-        output_power = v & 0b1111
+        data = self.get_register('pa_config')
         if convert_dBm:
-            max_power = max_power * .6 + 10.8
-            output_power = max_power - (15 - output_power)
-        res = {'pa_select':pa_select,
-               "max_power":max_power,
-               "output_power":output_power}
-        return res
+            data['max_power'] = data['max_power'] * 0.6 + 10.8
+            data['output_power'] = data['output_power'] - (15 - data['output_power'])
+        return data
 
     def set_pa_config(self, pa_select=None, max_power=None, output_power=None):
         """ Configure the PA
@@ -328,12 +328,10 @@ class SX127X(COM_SPI, multibyte):
                 Pout=17-(15-OutputPower) if PaSelect = 1 (PA_BOOST pin)
         :return: new register value
         """
-        current = self.get_pa_config()
-        current['pa_select'] = pa_select if pa_select is not None else current['pa_select']
-        current['max_power'] = max_power if max_power is not None else current['max_power']
-        current['output_power'] = output_power if output_power is not None else current['output_power']
-        val = (current['pa_select'] << 7) | (current['max_power'] << 4) | (current['output_power'])
-        return self.write_u8(REG.LORA.PA_CONFIG, val)
+        data = dict(pa_select = pa_select,
+                    max_power = max_power,
+                    output_power = output_power)
+        return self.set_register('pa_config', data)
 
     @getter(REG.LORA.PA_RAMP)
     def get_pa_ramp(self, val):
@@ -369,13 +367,13 @@ class SX127X(COM_SPI, multibyte):
         v = set_bit(v, 5, ocp_on)
         return self.write_u8(REG.LORA.OCP, v)
 
+    __register['lna'] = dict(addr = REG.LORA.LNA,
+                                    lna_gain =[5,3],
+                                    lna_boost_lf = [3,2],
+                                    lna_boost_hf = [0,2])
+
     def get_lna(self):
-        v = self.read_u8(REG.LORA.LNA)
-        return dict(
-                lna_gain     = v >> 5,
-                lna_boost_lf = v >> 3 & 0b11,
-                lna_boost_hf = v & 0b11
-            )
+        return self.get_register('lna')
 
     def set_lna(self, lna_gain=None, lna_boost_lf=None, lna_boost_hf=None):
         assert lna_boost_hf is None or lna_boost_hf == 0b00 or lna_boost_hf == 0b11
@@ -383,11 +381,12 @@ class SX127X(COM_SPI, multibyte):
         if lna_gain is not None:
             # Apparently agc_auto_on must be 0 in order to set lna_gain
             self.set_agc_auto_on(lna_gain == GAIN.NOT_USED)
-        loc = locals()
-        current = self.get_lna()
-        loc = {s: current[s] if loc[s] is None else loc[s] for s in loc}
-        val = (loc['lna_gain'] << 5) | (loc['lna_boost_lf'] << 3) | (loc['lna_boost_hf'])
-        retval = self.write_u8(REG.LORA.LNA, val)
+        data = dict(
+                lna_gain = lna_gain,
+                lna_boost_lf = lna_boost_lf,
+                lna_boost_hf = lna_boost_hf
+            )
+        retval = self.set_register('lna', data)
         if lna_gain is not None:
             # agc_auto_on must track lna_gain: GAIN=NOT_USED -> agc_auto=ON, otherwise =OFF
             self.set_agc_auto_on(lna_gain == GAIN.NOT_USED)
@@ -409,65 +408,70 @@ class SX127X(COM_SPI, multibyte):
         return self.write_u8(REG.LORA.FIFO_TX_BASE_ADDR, ptr)
 
     def get_fifo_rx_base_addr(self):
-        return self.read_u8(REG.LORA.FIFO_RX_BASE_ADDR, 0)
+        return self.read_u8(REG.LORA.FIFO_RX_BASE_ADDR)
 
     def set_fifo_rx_base_addr(self, ptr):
         return self.write_u8(REG.LORA.FIFO_RX_BASE_ADDR, ptr)
 
     def get_fifo_rx_current_addr(self):
-        return self.read_u8(REG.LORA.FIFO_RX_CURR_ADDR, 0)
+        return self.read_u8(REG.LORA.FIFO_RX_CURR_ADDR)
 
     def get_fifo_rx_byte_addr(self):
-        return self.read_u8(REG.LORA.FIFO_RX_BYTE_ADDR, 0)
+        return self.read_u8(REG.LORA.FIFO_RX_BYTE_ADDR)
+
+    __register['irq_flag_mask'] = dict(addr = REG.LORA.IRQ_FLAGS_MASK,
+                         rx_timeout =[7, 1],
+                         rx_done = [6, 1],
+                         crc_error = [5, 1],
+                         valid_header = [4, 1],
+                         tx_done = [3, 1],
+                         cad_done = [2, 1],
+                         fhss_change_ch = [1, 1],
+                         cad_detected = [0, 1])
 
     def get_irq_flags_mask(self):
-        v = self.read_u8(REG.LORA.IRQ_FLAGS_MASK, 0)
-        return dict(
-                rx_timeout     = v >> 7 & 0x01,
-                rx_done        = v >> 6 & 0x01,
-                crc_error      = v >> 5 & 0x01,
-                valid_header   = v >> 4 & 0x01,
-                tx_done        = v >> 3 & 0x01,
-                cad_done       = v >> 2 & 0x01,
-                fhss_change_ch = v >> 1 & 0x01,
-                cad_detected   = v >> 0 & 0x01,
-            )
+        return self.get_register('irq_flag_mask')
 
     def set_irq_flags_mask(self,
                            rx_timeout=None, rx_done=None, crc_error=None, valid_header=None, tx_done=None,
                            cad_done=None, fhss_change_ch=None, cad_detected=None):
-        loc = locals()
-        v = self.read_u8(REG.LORA.IRQ_FLAGS_MASK, 0)
-        for i, s in enumerate(['cad_detected', 'fhss_change_ch', 'cad_done', 'tx_done', 'valid_header',
-                               'crc_error', 'rx_done', 'rx_timeout']):
-            this_bit = locals()[s]
-            if this_bit is not None:
-                v = set_bit(v, i, this_bit)
-        return self.write_u8(REG.LORA.IRQ_FLAGS_MASK, v)
+        data = dict(
+                rx_timeout = rx_timeout,
+                rx_done = rx_done,
+                crc_error = crc_error,
+                valid_header = valid_header,
+                tx_done = tx_done,
+                cad_done = cad_done,
+                fhss_change_ch = fhss_change_ch,
+                cad_detected = cad_detected)
+        return self.set_register('irq_flag_mask', data)
+
+    __register['irq_flags'] = dict(addr = REG.LORA.IRQ_FLAGS,
+                         rx_timeout =[7, 1],
+                         rx_done = [6, 1],
+                         crc_error = [5, 1],
+                         valid_header = [4, 1],
+                         tx_done = [3, 1],
+                         cad_done = [2, 1],
+                         fhss_change_ch = [1, 1],
+                         cad_detected = [0, 1])
 
     def get_irq_flags(self):
-        v = self.read_u8(REG.LORA.IRQ_FLAGS, 0)
-        return dict(
-                rx_timeout     = v >> 7 & 0x01,
-                rx_done        = v >> 6 & 0x01,
-                crc_error      = v >> 5 & 0x01,
-                valid_header   = v >> 4 & 0x01,
-                tx_done        = v >> 3 & 0x01,
-                cad_done       = v >> 2 & 0x01,
-                fhss_change_ch = v >> 1 & 0x01,
-                cad_detected   = v >> 0 & 0x01,
-            )
+        return self.get_register('irq_flags')
 
     def set_irq_flags(self,
                       rx_timeout=None, rx_done=None, crc_error=None, valid_header=None, tx_done=None,
                       cad_done=None, fhss_change_ch=None, cad_detected=None):
-        v = self.read_u8(REG.LORA.IRQ_FLAGS, 0)
-        for i, s in enumerate(['cad_detected', 'fhss_change_ch', 'cad_done', 'tx_done', 'valid_header',
-                               'crc_error', 'rx_done', 'rx_timeout']):
-            this_bit = locals()[s]
-            if this_bit is not None:
-                v = set_bit(v, i, this_bit)
-        return self.write_u8(REG.LORA.IRQ_FLAGS, v)
+        data = dict(
+                rx_timeout = rx_timeout,
+                rx_done = rx_done,
+                crc_error = crc_error,
+                valid_header = valid_header,
+                tx_done = tx_done,
+                cad_done = cad_done,
+                fhss_change_ch = fhss_change_ch,
+                cad_detected = cad_detected)
+        return self.set_register('irq_flags', data)
 
     def clear_irq_flags(self):
         v = self.write_u8(REG.LORA.IRQ_FLAGS)
@@ -484,51 +488,51 @@ class SX127X(COM_SPI, multibyte):
         val = self.read_u16_r(REG.LORA.RX_PACKET_CNT_MSB)
         return val
 
+    __register['modem_stat'] = dict(addr = REG.LORA.MODEM_STAT,
+                         rx_coding_rate =[5, 2],
+                         modem_clear = [4, 1],
+                         header_info_valid = [3, 1],
+                         rx_ongoing = [2, 1],
+                         signal_sync = [1, 1],
+                         signal_detected = [0, 1])
+
     def get_modem_status(self):
-        status = self.read_u8(REG.LORA.MODEM_STAT, 0)
-        return dict(
-                rx_coding_rate    = status >> 5 & 0x03,
-                modem_clear       = status >> 4 & 0x01,
-                header_info_valid = status >> 3 & 0x01,
-                rx_ongoing        = status >> 2 & 0x01,
-                signal_sync       = status >> 1 & 0x01,
-                signal_detected   = status >> 0 & 0x01
-            )
+        return self.get_register('modem_stat')
 
     def get_pkt_snr_value(self):
-        v = self.read_u8(REG.LORA.PKT_SNR_VALUE, 0)
+        v = self.read_u8(REG.LORA.PKT_SNR_VALUE)
         return float(256-v) / 4.
 
     def get_pkt_rssi_value(self):
-        v = self.read_u8(REG.LORA.PKT_RSSI_VALUE, 0)
+        v = self.read_u8(REG.LORA.PKT_RSSI_VALUE)
         return v - 157
 
     def get_rssi_value(self):
-        v = self.read_u8(REG.LORA.RSSI_VALUE, 0)
+        v = self.read_u8(REG.LORA.RSSI_VALUE)
         return v - 157
 
+    __register['hop_channel'] = dict(addr = REG.LORA.HOP_CHANNEL,
+                         pll_timeout =[7, 1],
+                         crc_on_payload = [6, 1],
+                         fhss_present_channel = [0, 5])
+
     def get_hop_channel(self):
-        v = self.read_u8(REG.LORA.HOP_CHANNEL, 0)
-        return dict(
-                pll_timeout          = v >> 7,
-                crc_on_payload       = v >> 6 & 0x01,
-                fhss_present_channel = v >> 5 & 0b111111
-            )
+        return self.get_register('hop_channel')
+
+
+    __register['modem_config_1'] = dict(addr = REG.LORA.MODEM_CONFIG_1,
+                         bw =[4, 4],
+                         coding_rate = [1, 3],
+                         implicit_header_mode = [0, 1])
 
     def get_modem_config_1(self):
-        val = self.read_u8(REG.LORA.MODEM_CONFIG_1, 0)
-        return dict(
-                bw = val >> 4 & 0x0F,
-                coding_rate = val >> 1 & 0x07,
-                implicit_header_mode = val & 0x01
-            )
+        return self.get_register('modem_config_1')
 
     def set_modem_config_1(self, bw=None, coding_rate=None, implicit_header_mode=None):
-        loc = locals()
-        current = self.get_modem_config_1()
-        loc = {s: current[s] if loc[s] is None else loc[s] for s in loc}
-        val = loc['implicit_header_mode'] | (loc['coding_rate'] << 1) | (loc['bw'] << 4)
-        return self.write_u8(REG.LORA.MODEM_CONFIG_1, val)
+        data = dict(bw = bw,
+                    coding_rate = coding_rate,
+                    implicit_header_mode = implicit_header_mode)
+        return self.set_register('modem_config_1', data)
 
     def set_bw(self, bw):
         """ Set the bandwidth 0=7.8kHz ... 9=500kHz
@@ -547,24 +551,21 @@ class SX127X(COM_SPI, multibyte):
     def set_implicit_header_mode(self, implicit_header_mode):
         self.set_modem_config_1(implicit_header_mode=implicit_header_mode)
 
+    __register['modem_config_2'] = dict(addr = REG.LORA.MODEM_CONFIG_2,
+                         spreading_factor =[4, 4],
+                         tx_cont_mode = [3, 1],
+                         rx_crc = [2, 1],
+                         symb_timout_lsb = [0,2])
+
     def get_modem_config_2(self, include_symb_timout_lsb=False):
-        val = self.read_u8(REG.LORA.MODEM_CONFIG_2, 0)
-        d = dict(
-                spreading_factor = val >> 4 & 0x0F,
-                tx_cont_mode = val >> 3 & 0x01,
-                rx_crc = val >> 2 & 0x01,
-            )
-        if include_symb_timout_lsb:
-            d['symb_timout_lsb'] = val & 0x03
-        return d
+        return self.get_register('modem_config_2')
 
     def set_modem_config_2(self, spreading_factor=None, tx_cont_mode=None, rx_crc=None):
-        loc = locals()
-        # RegModemConfig2 contains the SymbTimout MSB bits. We tack the back on when writing this register.
-        current = self.get_modem_config_2(include_symb_timout_lsb=True)
-        loc = {s: current[s] if loc[s] is None else loc[s] for s in loc}
-        val = (loc['spreading_factor'] << 4) | (loc['tx_cont_mode'] << 3) | (loc['rx_crc'] << 2) | current['symb_timout_lsb']
-        return self.write_u8(REG.LORA.MODEM_CONFIG_2, val)
+        data = dict(spreading_factor = spreading_factor,
+                    tx_cont_mode = tx_cont_mode,
+                    rx_crc = rx_crc,
+                    symb_timout_lsb = None)
+        return self.set_register('modem_config_2', data)
 
     def set_spreading_factor(self, spreading_factor):
         self.set_modem_config_2(spreading_factor=spreading_factor)
@@ -572,21 +573,17 @@ class SX127X(COM_SPI, multibyte):
     def set_rx_crc(self, rx_crc):
         self.set_modem_config_2(rx_crc=rx_crc)
 
+    __register['modem_config_3'] = dict(addr = REG.LORA.MODEM_CONFIG_3,
+                         low_data_rate_optim =[3, 1],
+                         agc_auto_on = [2, 1])
+
     def get_modem_config_3(self):
-        val = self.read_u8(REG.LORA.MODEM_CONFIG_3, 0)
-        return dict(
-                low_data_rate_optim = val >> 3 & 0x01,
-                agc_auto_on = val >> 2 & 0x01
-            )
+        return self.get_register('modem_config_3')
 
     def set_modem_config_3(self, low_data_rate_optim=None, agc_auto_on=None):
-        loc = locals()
-        current = self.get_modem_config_3()
-        loc = {}
-        for s in loc:
-            loc[s] = current[s] if loc[s] is None else loc[s]
-        val = (loc['low_data_rate_optim'] << 3) | (loc['agc_auto_on'] << 2)
-        return self.write_u8(REG.LORA.MODEM_CONFIG_3, val)
+        data = dict(low_data_rate_optim = low_data_rate_optim,
+                    agc_auto_on = agc_auto_on)
+        return self.set_register('modem_config_3', data)
 
     @setter(REG.LORA.INVERT_IQ)
     def set_invert_iq(self, invert):
@@ -881,11 +878,39 @@ class SX127X(COM_SPI, multibyte):
             result_list.append((i, s, v))
         return result_list
 
-    def get_register(self, register_address):
-        return self.read_u8(register_address & 0x7F)
+    def get_register(self, register):
+        if isinstance(register, int):
+            return self.read_u8(register & 0x7F)
+        else:
+            if not register in self.__register:
+                raise Exception("Register %s does not exist" % register)
+            val = self.read_u8(self.__register[register]['addr'])
+            res = dict()
+            for k,v in self.__register[register].items():
+                if k == 'addr':
+                    continue
+                res[k] = (val >> v[0]) & ((1 << v[1])-1)
+            return res
 
-    def set_register(self, register_address, val):
-        return self.write_u8(register_address, val)
+
+    def set_register(self, register, data):
+        if isinstance(register, int):
+            return self.write_u8(register, data)
+        else:
+            if not register in self.__register:
+                raise Exception("Register %s does not exist" % register)
+            val = self.read_u8(self.__register[register]['addr'])
+            for k,v in self.__register[register].items():
+                if k == 'addr':
+                    continue
+                if (k in data) and (data[k] is not None):
+                    mask = ((1 << v[1])-1)
+                    newVal = (data[k] << v[0]) & mask
+                    val &= ~mask
+                    val |= newVal
+            self.write_u8(self.__register[register]['addr'], val)
+            return val
+
 
     def __del__(self):
         self.set_mode(MODE.SLEEP)
@@ -904,6 +929,8 @@ class SX127X(COM_SPI, multibyte):
         pa_config = self.get_pa_config(convert_dBm=True)
         ocp = self.get_ocp(convert_mA=True)
         lna = self.get_lna()
+        print("0x%02x 0x%02x 0x%02x" % (self.get_mode(), self.mode, self.__mode_mask))
+        print(cfg1)
         s =  "SX127x LoRa registers:\n"
         s += " mode               %s\n" % MODE.lookup[self.get_mode() & self.__mode_mask]
         s += " freq               %f MHz\n" % f
