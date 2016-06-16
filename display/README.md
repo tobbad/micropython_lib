@@ -81,7 +81,17 @@ Addr              |   Bit ||||||||
 1135              | B[31][31][8] | B[31][15][8] | B[30][31][8] | B[30][15][8] | G[30][31][8] | G[30][15][8] | R[30][31][8] | R[30][15][8] | 
 
 
-As you can see the two LSB are sueddifferently from the lower bits. 
+As you can see the two LSB are differently from the lower bits. For save storage they contain the bits for all pixels with the lowest to bits in the x cordinate set.
+
+The location of a bit in memory is therfore:
+
+Condition          | Addresse | Bit
+-------------------|----------|----------------|--------------------------------------------------
+y<16, lsb x != b11 | ln2(w)*384+y*width+x      | Bit 0 for red, Bit 2 for green and Bit 4 for blue
+y>=16,lsb x != b11 | ln2(w)*384+(y-16)*width+x | Bit 1 for red, Bit 3 for green and Bit 5 for blue
+y<16, lsb x == b11 | ln2(w)*384+y*width        | Bit 6 for red
+                   | ln2(w)*384+y*width+1      | Bit 6 for green
+                   | ln2(w)*384+y*width+2      | Bit 6 for blue
 
 
 
