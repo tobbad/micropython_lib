@@ -37,7 +37,7 @@ To control the singel led you activate over the `a`, `b`, `c` and `d` input a gr
 Each individual pixel on a line is given by the position of the bit shifted into the shift register. So the first bit is controlling led 31 on a line and the last bit shifted into the register is controlling led 0 - but your mileage may vary. Following image shows a simplyfied led matrix cabeling (Taken from [here](http://www.tacticalcode.de/2013/01/led-matrix-theoretische-planung.html):
 
 <p align="center">
-  <img src="pic/multiplexmatrix.png" alt="Block diagramm of MBI5026"/>
+  <img src="pic/multiplexmatrix.png" alt="How to multiplex"/>
 </p>
 To display a full image you quickly select two lines with the `a`, `b`, `c` and `d` line and select the active led in a line by setting the related bit in the shift register to active - which connects the cathod of the  led to ground. If you do this quick enough you see a steady image.
 
@@ -46,8 +46,8 @@ To controll the brightness of a LED you have to controll the duration during whi
 To access the data to be shifted out at the beginning of each time slot efficiently, the panel RGB data is stored in a special way. First we separate the color bits with respect to the bits weight. For examle all least significant bit (lsb) for all colors are stored together and the RGB color bits for weight 2 are stored together. Further we have to interleave the bits from the upper part of the panel with the bits from the lower part of the panel. The inspiration for my module came from the [arduino](https://github.com/adafruit/RGB-matrix-Panel/blob/master/RGBmatrixPanel.cpp) implementation for this panel So we have to group the bits in the following way (where X[x][y][w] X: R=red, G=green, B=blue, x:xcoordinate of pixel (0..31), y: y-coordinate of pixel (0..31) and w= weight of pixel 1,2,4 or 8):
 
 Address in memory |   Bit
-                  | 7             | 6             | 5             | 4             | 3             | 2             | 1             | 0             |
 ------------------|---------------|---------------|---------------|---------------|---------------|---------------|---------------|---------------|
+                  | 7             | 6             | 5             | 4             | 3             | 2             | 1             | 0             |
 0                 | R[ 3][ 0][ 1] | R[ 3][15][ 1] | B[ 0][15][ 1] | B[ 0][ 0][ 1] | G[ 0][15][ 1] | G[ 0][ 0][ 1] | R[ 0][15][ 1] | R[ 0][ 0][ 1] | 
 1                 | G[ 3][ 0][ 1] | G[ 3][15][ 1] | B[ 1][15][ 1] | B[ 1][ 0][ 1] | G[ 1][15][ 1] | G[ 1][ 0][ 1] | R[ 1][15][ 1] | R[ 1][ 0][ 1] | 
 2                 | B[ 3][ 0][ 1] | B[ 3][15][ 1] | B[ 2][15][ 1] | B[ 2][ 0][ 1] | G[ 2][15][ 1] | G[ 2][ 0][ 1] | R[ 2][15][ 1] | R[ 2][ 0][ 1] | 
@@ -55,6 +55,7 @@ Address in memory |   Bit
 4                 | G[ 7][ 0][ 1] | G[ 7][15][ 1] | B[ 5][15][ 1] | B[ 5][ 0][ 1] | G[ 5][15][ 1] | G[ 5][ 0][ 1] | R[ 5][15][ 1] | R[ 5][ 0][ 1] | 
 5                 | B[ 7][ 0][ 1] | B[ 7][15][ 1] | B[ 6][15][ 1] | B[ 6][ 0][ 1] | G[ 6][15][ 1] | G[ 6][ 0][ 1] | R[ 6][15][ 1] | R[ 6][ 0][ 1] | 
 
+As you can see the two LSB are sueddifferently from the lower bits. 
 
 
 
