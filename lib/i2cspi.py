@@ -24,7 +24,7 @@ class COM_SERIAL():
         for reg, val in self.DEFAULT_CONF:
             self.write_u8(reg, val)
 
-    def id(self):
+    def dev_id(self):
         myId = self.read_binary(self.WHO_IAM_REG, 1)[0]
         myId &= self.WHO_IAM_ANSWER_MASK
         return myId
@@ -35,9 +35,9 @@ class COM_SERIAL():
         Keep it separate from constructor to allow setup the chip before asking
         for identity as needed for example in 3 wire SPI communication.
         '''
-        whoami = self.id()
+        whoami = self.dev_id()
         if whoami != self.WHO_IAM_ANSWER:
-            raise Exception("No sensor found %s" % (self))
+            raise Exception("No device found %s" % (self))
 
     def set_mode_16bit_addr(self, mode=True):
         if mode:
@@ -77,7 +77,7 @@ class COM_I2C(COM_SERIAL):
                                 memaddr=reg_addr, addr_size=self.addr_size)
         res = struct.unpack("B"*byte_cnt, ans)
         if self.DEBUG:
-            print("Read (%s) reg addr 0x%02x, data: %s" %
+            print("Read  (%s) reg addr 0x%02x, data: %s" %
                   (self.id, reg_addr, self.buf2Str(res)))
         return res
 
@@ -130,7 +130,7 @@ class COM_SPI(COM_SERIAL):
         buf = self.com.recv(byte_cnt)
         self.selector.high()
         if self.DEBUG:
-            print("Read (%s) reg addr 0x%02x, data: %s" %
+            print("Read  (%s) reg addr 0x%02x, data: %s" %
                   (self.id, reg_addr, self.buf2Str(buf)))
         return buf
 

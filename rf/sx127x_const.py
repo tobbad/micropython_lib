@@ -64,6 +64,7 @@ class BW:
 
 @add_lookup
 class CODING_RATE:
+    CR_NA = 0
     CR4_5 = 1
     CR4_6 = 2
     CR4_7 = 3
@@ -117,7 +118,13 @@ class MASK:
         CadDone             = 2
         FhssChangeChannel   = 1
         CadDetected         = 0
+    class CAL:
+        ImageCal = 0xBF
 
+class CALIBRATE:
+    class MODE:
+        start = 0x40
+        running = 0x20
 
 class REG:
 

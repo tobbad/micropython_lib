@@ -89,7 +89,7 @@ class LoRaBeacon(SX127X):
 
 
 spi = pyb.SPI(sys_config['sx127x']['spi_bus'], pyb.SPI.MASTER,
-              baudrate=600000, polarity=1, phase=1)
+              baudrate=600000, polarity=0, phase=0, firstbit=pyb.SPI.MSB)
 cs = pyb.Pin(sys_config['sx127x']['spi_cs'], pyb.Pin.OUT_PP)
 reset = pyb.Pin(sys_config['sx127x']['reset'], pyb.Pin.OUT_PP)
 dio_pins = ['Y6', 'Y7', 'Y8', 'Y4']
@@ -97,15 +97,15 @@ dio_pins = ['Y6', 'Y7', 'Y8', 'Y4']
 lora = LoRaBeacon(spi, cs, reset, dio_pins, verbose=False)
 
 lora.set_pa_config(pa_select=1)
-#lora.set_rx_crc(True)
-#lora.set_agc_auto_on(True)
-#lora.set_lna_gain(GAIN.NOT_USED)
-#lora.set_coding_rate(CODING_RATE.CR4_6)
-#lora.set_implicit_header_mode(False)
-#lora.set_pa_config(max_power=0x04, output_power=0x0F)
-#lora.set_pa_config(max_power=0x04, output_power=0b01000000)
-#lora.set_low_data_rate_optim(True)
-#lora.set_pa_ramp(PA_RAMP.RAMP_50_us)
+lora.set_rx_crc(True)
+lora.set_agc_auto_on(True)
+lora.set_lna_gain(GAIN.NOT_USED)
+lora.set_coding_rate(CODING_RATE.CR4_6)
+lora.set_implicit_header_mode(False)
+lora.set_pa_config(max_power=0x04, output_power=0x0F)
+lora.set_pa_config(max_power=0x04, output_power=0b01000000)
+lora.set_low_data_rate_optim(True)
+lora.set_pa_ramp(PA_RAMP.RAMP_50_us)
 
 
 #print(lora)

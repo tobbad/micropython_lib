@@ -2,7 +2,7 @@
 # Main file for STM32F4DISCOVERY
 #
 import pyb
-from sx127x_a import SX127X
+from sx127x import SX127X
 from mma7660 import MMA7660
 from board import sys_config
 
@@ -18,7 +18,7 @@ vdda.high()
 pyb.delay(30)
 
 accel = MMA7660(i2c, sys_config['mma7660']['i2c_addr'])
-print("Acceleration  (%.3e, %.3e, %.3e)" % accel.xyz())
+print("Acceleration  (%3d, %3d, %3d)" % accel.xyz())
 
 spi = pyb.SPI(sys_config['sx127x']['spi_bus'], pyb.SPI.MASTER,
               baudrate=600000, polarity=0, phase=0)

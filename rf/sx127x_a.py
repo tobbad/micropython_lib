@@ -80,6 +80,8 @@ def setter(register_address):
 
 class SX127X(COM_SPI, multibyte):
 
+    WHO_IAM_REG = 0x42
+    WHO_IAM_ANSWER = 0x12
     mode = None                       # the mode is backed up here
     verbose = True
     dio_mapping = [None] * 6          # store the dio mapping here
@@ -102,17 +104,23 @@ class SX127X(COM_SPI, multibyte):
         self.__dio=dio_pin
         self.__reset_pin = reset_pin
         self.reset()
+        self.exists()
         self.__mode_mask = 0x87
         #
         # set the callbacks for DIO0..3 IRQs. DIO4/5 are not supported
         #
         for pin, fun in zip(dio_pin, [self._dio0, self._dio1, self._dio2, self._dio3]):
             pyb.ExtInt(pin, pyb.ExtInt.IRQ_RISING, pyb.Pin.PULL_UP, callback=fun)
-        # set mode to sleep and read all registers
+        # set mode to sleep
         self.set_mode(MODE.SLEEP)
         # more setup work:
         if do_calibration:
             self.rx_chain_calibration(calibration_freq)
+        # set the dio_ mapping by calling the two get_dio_mapping_* functions
+        self.get_dio_mapping_1()
+        self.get_dio_mapping_2()
+
+    def fsk_setup(self):
         # the FSK registers are set up exactly as modtronix do it:
         lookup_fsk = [
             [REG.FSK.LNA            , 0x23],
@@ -134,9 +142,7 @@ class SX127X(COM_SPI, multibyte):
         for register_address, value in lookup_fsk:
             self.set_register(register_address, value)
         self.set_mode(MODE.SLEEP)
-        # set the dio_ mapping by calling the two get_dio_mapping_* functions
-        self.get_dio_mapping_1()
-        self.get_dio_mapping_2()
+
 
     def reset(self):
         self.__reset_pin.low()
@@ -144,8 +150,9 @@ class SX127X(COM_SPI, multibyte):
         self.__reset_pin.high()
         pyb.delay(6)
 
+    #
     # Overridable functions:
-
+    #
     def on_rx_done(self):
         pass
 
@@ -167,8 +174,9 @@ class SX127X(COM_SPI, multibyte):
     def on_fhss_change_channel(self):
         pass
 
+    #
     # Internal callbacks for add_events()
-
+    #
     def _dio0(self, channel):
         # DIO0 00: RxDone
         # DIO0 01: TxDone
@@ -215,10 +223,10 @@ class SX127X(COM_SPI, multibyte):
             raise RuntimeError("unknown dio3 mapping!")
 
     def _dio4(self, channel):
-        raise RuntimeError("DIO4 is not used")
+        raise RuntimeError("DIO4 is not supported")
 
     def _dio5(self, channel):
-        raise RuntimeError("DIO5 is not used")
+        raise RuntimeError("DIO5 is not supported")
 
     # All the set/get/read/write functions
 
@@ -868,13 +876,12 @@ class SX127X(COM_SPI, multibyte):
         :rtype: list[tuple]
         """
         self.set_mode(MODE.SLEEP)
-        values = self.get_all_registers()
         skip_set = set([REG.LORA.FIFO])
         result_list = []
-        for i, s in REG.LORA.lookup.iteritems():
+        for i, s in REG.LORA.lookup.items():
             if i in skip_set:
                 continue
-            v = values[i]
+            v = self.read_u8(i)
             result_list.append((i, s, v))
         return result_list
 
@@ -894,6 +901,9 @@ class SX127X(COM_SPI, multibyte):
 
 
     def set_register(self, register, data):
+        if self.DEBUG:
+            print("Write to register 0x%02x:" % register)
+            print(data)
         if isinstance(register, int):
             return self.write_u8(register, data)
         else:
