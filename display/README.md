@@ -45,7 +45,7 @@ To controll the brightness of a LED you have to controll the duration during whi
 
 To access the data to be shifted out at the beginning of each time slot efficiently, the panel RGB data is stored in a special way. First we separate the color bits with respect to the bits weight. For examle all least significant bit (lsb) for all colors are stored together and the RGB color bits for weight 2 are stored together. Further we have to interleave the bits from the upper part of the panel with the bits from the lower part of the panel. The inspiration for my module came from the [arduino](https://github.com/adafruit/RGB-matrix-Panel/blob/master/RGBmatrixPanel.cpp) implementation for this panel So we have to group the bits in the following way (where X[x][y][w] X: R=red, G=green, B=blue, x:xcoordinate of pixel (0..31), y: y-coordinate of pixel (0..31) and w= weight of pixel 1,2,4 or 8):
 
-Address in memory |   Bit
+Address in memory |   Bit ||||||||
 ------------------|---------------|---------------|---------------|---------------|---------------|---------------|---------------|---------------|
                   | 7             | 6             | 5             | 4             | 3             | 2             | 1             | 0             |
 0                 | R[ 3][ 0][ 1] | R[ 3][15][ 1] | B[ 0][15][ 1] | B[ 0][ 0][ 1] | G[ 0][15][ 1] | G[ 0][ 0][ 1] | R[ 0][15][ 1] | R[ 0][ 0][ 1] | 
