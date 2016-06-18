@@ -4,12 +4,13 @@
 #
 import unittest
 
-from micropython_lib.lib.lorawan import RADIO_IF, LORAWAN
+from micropython_lib.display.led_matrix  import LED_MATRIX
+from mock.pyb.Pin import Pin
 
-class DUMMY_RF(RADIO_IF):
+class DISPLAY_HW:
 
     def __init__(self):
-        super().__init__()
+        self.addr = list( Pin(i, ))
 
 
 class Create(unittest.TestCase):

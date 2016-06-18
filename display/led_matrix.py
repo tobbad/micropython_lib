@@ -3,11 +3,14 @@
 from pyb import Pin, delay
 
 
+class LED_MATRIX_HW():
+
+
 class LED_MATRIX:
-    
+
     DEBUG = True
     PORT2GPIO = [stm.GPIOA, stm.GPIOB, stm.GPIOC, stm.GPIOD, stm.GPIOE ]
-    
+
     def __init__(self, width, height, red, green, blue, a, b, c, d, clk, latch, oe):
         self.__width = width
         self.__height = height
@@ -32,14 +35,14 @@ class LED_MATRIX:
         self.__latch = Pin(latch, Pin.OUT_PP)
         self.__oe = Pin(oe, Pin.OUT_PP)
         self.__buffer = bytearray(self.__width*self.__height*2)
-        self.__next_linenr = 0 
+        self.__next_linenr = 0
         self.__next_ln2weight = 1
         self.__set_hi = []
         self.__set_lo = []
         if self.DEBUG:
             print(self)
-        
-        
+
+
     def pixel(self, x, y, col = None):
         if (0 <= x < self.__width) and (0 <= y < self.__height):
             lower = y < 16
@@ -54,7 +57,7 @@ class LED_MATRIX:
                             r += ((val   ) & 0x01)*(1<<ln2w)
                             g += ((val>>2) & 0x01)*(1<<ln2w)
                             b += ((val>>4) & 0x01)*(1<<ln2w)
-                        else:     
+                        else:
                             r += ((val>>1) & 0x01)*(1<<ln2w)
                             g += ((val>>3) & 0x01)*(1<<ln2w)
                             b += ((val>>5) & 0x01)*(1<<ln2w)
@@ -98,8 +101,8 @@ class LED_MATRIX:
                         print("Set iregular buffer@ %d, %d %d to 0x%02x 0x%02x 0x%02x" % (addr, addr+1, addr+2, self.__buffer[addr], self.__buffer[addr+1], self.__buffer[addr+2]))
         else:
             raise Exception("Pixel (%d, %d) is not on canevas" % (x, y))
-        
-        
+
+
     def select_line(self, line_number):
         if line_number & 0x01:
             self.__a.high()
@@ -205,7 +208,7 @@ class LED_MATRIX:
                 self.pixel(x,y, col)
                 self.show(True)
                 self.pixel(x,y, clear)
-                
+
 
     def non_zero(self):
         res = []
@@ -216,7 +219,7 @@ class LED_MATRIX:
                     res.append("Pixel at (%d, %d) = (%d, %d, %d)" % (x,y,val[0],val[1], val[2]))
         return "\n".join(res)
 
-        
+
     def __str__(self):
         res = []
         res.append("Set up led matrix with:")
@@ -229,4 +232,4 @@ class LED_MATRIX:
         res.append("a, b, c, d = %s %s %s %s" % (self.__a, self.__b, self.__c, self.__d))
         res.append("line sel: %d " % self.__next_linenr)
         return "\n".join(res)
-        
+
