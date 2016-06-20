@@ -127,30 +127,6 @@ class LED_MATRIX:
             else:
                 self.__d.low()
 
-    def set_rgb_pin(self, val, pin):
-        if (val & 0x01):
-            pin.high()
-        else:
-            pin.low()
-        return val>>1
-
-    def set_data(self, ln2w, line_nr):
-        val0 = line_nr<<28
-        val1 = line_nr<<24
-        if line_nr !=42:
-            r0, r1, g0, g1, b0, b1 = val0, val1, val0,  val1, val0, val1
-        else:
-            r0, r1, g0, g1, b0, b1 = 0 ,0 ,0, 0 ,0 ,0
-        for i in range(self.__width):
-            r0 = self.set_rgb_pin(r0, self.__red[0])
-            r1 = self.set_rgb_pin(r1, self.__red[1])
-            g0 = self.set_rgb_pin(g0, self.__green[0])
-            g1 = self.set_rgb_pin(g1, self.__green[1])
-            b0 = self.set_rgb_pin(b0, self.__blue[0])
-            b1 = self.set_rgb_pin(b1, self.__blue[1])
-            self.__clk.high()
-            self.__clk.low()
-
     #@micropython.viper
     def set_data_f(self, ln2w, line_nr):
         offset = ln2w*self.__BYTES_PER_WEIGHT+(line_nr & 0x0F)*(self.__bwidth)
