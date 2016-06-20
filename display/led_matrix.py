@@ -3,8 +3,6 @@
 from pyb import Pin, delay
 
 
-class LED_MATRIX_HW():
-
 
 class LED_MATRIX:
 
@@ -13,6 +11,7 @@ class LED_MATRIX:
 
     def __init__(self, width, height, red, green, blue, a, b, c, d, clk, latch, oe):
         self.__width = width
+        self.__bwidth = width//4*3
         self.__height = height
         self.__BYTES_PER_WEIGHT= 3*width*height>>3
         self.__BITPERCOLOR = 4
@@ -45,14 +44,16 @@ class LED_MATRIX:
 
     def pixel(self, x, y, col = None):
         if (0 <= x < self.__width) and (0 <= y < self.__height):
-            lower = y < 16
+            lower = (y < 16)
+            x_col = x//4*3 + (0 if x%4 == 3 else (x &0x03))
             if col is None:
                 r, g, b = 0, 0, 0
                 for ln2w in range(self.__BITPERCOLOR):
-                    addr = ln2w*self.__BYTES_PER_WEIGHT+(y&0x0F)*(self.__width>>1)+x
-                    if (addr & 0x03) != 0x03:
+                    addr = ln2w*self.__BYTES_PER_WEIGHT+(y&0x0F)*(self.__bwidth)+x_col
+                    if (x & 0x03) != 0x03:
                         val = self.__buffer[addr]
-                        print("Eval %s value at %d = 0x%02x weight %d" % ( "lower" if lower else "upper", addr, val, ln2w ))
+                        if self.DEBUG:
+                            print("Eval %s value at %d = 0x%02x weight %d" % ( "lower" if lower else "upper", addr, val, ln2w ))
                         if lower:
                             r += ((val   ) & 0x01)*(1<<ln2w)
                             g += ((val>>2) & 0x01)*(1<<ln2w)
@@ -70,14 +71,16 @@ class LED_MATRIX:
                             r += ((self.__buffer[addr  ]>>7) & 0x01)*(1<<ln2w)
                             g += ((self.__buffer[addr+1]>>7) & 0x01)*(1<<ln2w)
                             b += ((self.__buffer[addr+2]>>7) & 0x01)*(1<<ln2w)
+                        if self.DEBUG:
+                            print("%s r,g,b @ %d ln2w %d = (0x%02x, 0x%02x, 0x%02x) val (0x%02x, 0x%02x, 0x%02x)" % ( "lower" if lower else "upper", addr,  ln2w, r&(1<<ln2w),  g&(1<<ln2w),  b&(1<<ln2w), self.__buffer[addr  ], self.__buffer[addr+1], self.__buffer[addr+2] ))
                 return r, g, b
             else:
                 # col[0] is red
                 # col[1] is green
                 # col[2] is blue
                 for ln2w in range(self.__BITPERCOLOR):
-                    addr = ln2w*self.__BYTES_PER_WEIGHT+(y & 0x0F)*(self.__width>>1)+x
-                    if (addr & 0x03) != 0x03:
+                    addr = ln2w*self.__BYTES_PER_WEIGHT + (y & 0x0F)*(self.__bwidth)+x_col
+                    if (x & 0x03) != 0x03:
                         val = self.__buffer[addr]
                         if lower:
                             val &= 0xEA
@@ -89,16 +92,18 @@ class LED_MATRIX:
                             val |= 0x02 if col[0] & (1<<ln2w) else 0x00
                             val |= 0x08 if col[1] & (1<<ln2w) else 0x00
                             val |= 0x20 if col[2] & (1<<ln2w) else 0x00
-                        print("Set regular buffer@ %d to 0x%02x" % (addr, val))
+                        if self.DEBUG:
+                            print("Set %s regular buffer@ %d to 0x%02x" % ("lower" if lower else "upper",addr, val))
                         self.__buffer[addr] = val
                     else:
-                        mask = 0x80 if lower else 0x40
+                        mask = 0x40 if lower else 0x80
                         for i in range(3):
                             self.__buffer[addr+i] &= ~mask
                         self.__buffer[addr]   |= mask if col[0] & (1<<ln2w) else 0x00
                         self.__buffer[addr+1] |= mask if col[1] & (1<<ln2w) else 0x00
                         self.__buffer[addr+2] |= mask if col[1] & (1<<ln2w) else 0x00
-                        print("Set iregular buffer@ %d, %d %d to 0x%02x 0x%02x 0x%02x" % (addr, addr+1, addr+2, self.__buffer[addr], self.__buffer[addr+1], self.__buffer[addr+2]))
+                        if self.DEBUG:
+                            print("Set %s iregular buffer@ %d, %d %d to 0x%02x 0x%02x 0x%02x" % ("lower" if lower else "upper", addr, addr+1, addr+2, self.__buffer[addr], self.__buffer[addr+1], self.__buffer[addr+2]))
         else:
             raise Exception("Pixel (%d, %d) is not on canevas" % (x, y))
 
@@ -148,7 +153,7 @@ class LED_MATRIX:
 
     #@micropython.viper
     def set_data_f(self, ln2w, line_nr):
-        offset = ln2w*self.__BYTES_PER_WEIGHT+(line_nr & 0x0F)*(self.__width>>1)
+        offset = ln2w*self.__BYTES_PER_WEIGHT+(line_nr & 0x0F)*(self.__bwidth)
         val_11=0
         idx = 0
         for x in range(self.__width):
@@ -202,12 +207,12 @@ class LED_MATRIX:
     def test(self):
         col = (15,0,0)
         clear = (0,0,0)
-        for x in range(self.__width):
-            for y in range(self.__height):
-                print(x,y)
+        for y in range(self.__height):
+            for x in range(self.__width):
                 self.pixel(x,y, col)
                 self.show(True)
                 self.pixel(x,y, clear)
+        self.show(True)
 
 
     def non_zero(self):
