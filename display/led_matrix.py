@@ -1,24 +1,24 @@
 
 
-from pyb import Pin, delay
+from pyb import Pin, delay, ledmatrix
 
 
 
-class LED_MATRIX:
+class MATRIX:
 
     DEBUG = True
     PORT2GPIO = [stm.GPIOA, stm.GPIOB, stm.GPIOC, stm.GPIOD, stm.GPIOE ]
 
-    def __init__(self, width, height, red, green, blue, a, b, c, d, clk, latch, oe):
+    def __init__(self, width, height, depth, red, green, blue, a, b, c, d, clk, latch, oe):
         self.__width = width
         self.__bwidth = width//4*3
         self.__height = height
         self.__BYTES_PER_WEIGHT= 3*width*height>>3
-        self.__BITPERCOLOR = 4
+        self.__BITPERCOLOR = depth
         self.__red = tuple(Pin(i, Pin.OUT_PP) for i in red)
         self.__green = tuple(Pin(i, Pin.OUT_PP) for i in green)
         self.__blue = tuple(Pin(i, Pin.OUT_PP) for i in blue)
-        self.__color = list(Pin(i, Pin.OUT_PP) for i in red)
+        self.__color = list(Pin(i, Pin.OUT_PP) for i in color_sel)
         self.__color.extend(list(Pin(i, Pin.OUT_PP) for i in green))
         self.__color.extend(list(Pin(i, Pin.OUT_PP) for i in blue))
         print(self.__color)
@@ -63,14 +63,10 @@ class LED_MATRIX:
                             g += ((val>>3) & 0x01)*(1<<ln2w)
                             b += ((val>>5) & 0x01)*(1<<ln2w)
                     else:
-                        if lower:
-                            r += ((self.__buffer[addr  ]>>6) & 0x01)*(1<<ln2w)
-                            g += ((self.__buffer[addr+1]>>6) & 0x01)*(1<<ln2w)
-                            b += ((self.__buffer[addr+2]>>6) & 0x01)*(1<<ln2w)
-                        else:
-                            r += ((self.__buffer[addr  ]>>7) & 0x01)*(1<<ln2w)
-                            g += ((self.__buffer[addr+1]>>7) & 0x01)*(1<<ln2w)
-                            b += ((self.__buffer[addr+2]>>7) & 0x01)*(1<<ln2w)
+                        shift = 6 if lower else 7
+                        r += ((self.__buffer[addr  ]>>shift) & 0x01)*(1<<ln2w)
+                        g += ((self.__buffer[addr+1]>>shift) & 0x01)*(1<<ln2w)
+                        b += ((self.__buffer[addr+2]>>shift) & 0x01)*(1<<ln2w)
                         if self.DEBUG:
                             print("%s r,g,b @ %d ln2w %d = (0x%02x, 0x%02x, 0x%02x) val (0x%02x, 0x%02x, 0x%02x)" % ( "lower" if lower else "upper", addr,  ln2w, r&(1<<ln2w),  g&(1<<ln2w),  b&(1<<ln2w), self.__buffer[addr  ], self.__buffer[addr+1], self.__buffer[addr+2] ))
                 return r, g, b
@@ -127,11 +123,11 @@ class LED_MATRIX:
             else:
                 self.__d.low()
 
-    #@micropython.viper
-    def set_data_f(self, ln2w, line_nr):
-        offset = ln2w*self.__BYTES_PER_WEIGHT+(line_nr & 0x0F)*(self.__bwidth)
+    #@micropython.native
+    def set_data_f(self, ln2w:int, line_nr:int):
+        offset = ln2w*int(self.__BYTES_PER_WEIGHT)+(line_nr & 0x0F)*int(self.__bwidth)
         val_11=0
-        idx = 0
+        idx = int(0)
         for x in range(self.__width):
             s_idx = x & 0x03
             ser_val = 0
@@ -139,10 +135,10 @@ class LED_MATRIX:
                 ser_val = val_11
                 val_11 =0
             else:
-                ser_val = self.__buffer[offset+idx]
+                ser_val = int(self.__buffer[offset+idx])
                 val_11 |= (ser_val>>(6-2*s_idx))
                 idx+=1
-            for pin_nr in range(len(self.__color)):
+            for pin_nr in range(int(len(self.__color))):
                 pin = self.__color[pin_nr]
                 mask = 1<<pin_nr
                 if ser_val & mask:
@@ -153,6 +149,7 @@ class LED_MATRIX:
                     pin.low()
             self.__clk.high()
             self.__clk.low()
+
 
     def update(self):
         #print("Show line %d, weight %d" % (self.__next_linenr, self.__next_ln2weight))
@@ -214,3 +211,11 @@ class LED_MATRIX:
         res.append("line sel: %d " % self.__next_linenr)
         return "\n".join(res)
 
+
+class LED_MATRIX_ACCEL(ledmatrix.ledmatrix):
+    
+    def __init__(self, width, height, depth, line_sel, color_sel, clk, le, oe, timer):
+        #super().__init__(width, height, depth, line_sel, color_sel, clk, le, oe)
+        #self.timer(timer)
+        pass
+    
