@@ -113,7 +113,9 @@ class Matrix(pyb.ledmatrix.ledmatrix):
             led.low()            
             print("No client connected")
         else:
-            led.high()                            
+            led.high()
+        # This is a raw data stream .. os disable the CTRL-C interrupt
+        self._com.setinterrupt(-1)
         HELLO, WIDTH, HEIGHT, DEPTH, PIXEL, FILL, CLEAR, TEXT = range(48, 48+8)
         ANSW_OK, ANSW_ERROR  = b'\0', b'\1'
         while True:
@@ -181,17 +183,4 @@ class Matrix(pyb.ledmatrix.ledmatrix):
             if self.DEBUG:
                 bStr = "".join([" 0x%02x"% i for i in answ ])
                 print("Send bytes: %s" % bStr)
-                    
-    def sender(self):
-        ANSW_OK, ANSW_ERROR  = b'\0', b'\1'
-        self.com = pyb.USB_VCP()
-        if not self.com.isconnected():
-            print("No client connected")
-        answ = ANSW_OK
-        answ+=b'\x0d'
-        while True:
-            self.com.write(answ)
-            if self.DEBUG:
-                bStr = "".join([" 0x%02x"% i for i in answ ])
-                print("Send bytes: %s" % bStr)
-    
+   

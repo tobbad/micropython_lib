@@ -124,7 +124,13 @@ class Matrix(object):
         data += self.get_coord(coord)
         data += self.get_color(color)
         self.write(data)
-    
+ 
+    def show(self):
+        pass
+ 
+    def update(self):
+        return 1
+ 
 if __name__ == '__main__':
     # from led_matrix_client import Matrix
     m=Matrix('/dev/ttyACM0')

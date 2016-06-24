@@ -159,20 +159,6 @@ class Tetris:
         while True:
             self.wait_for_button_press()
             self.run_game()
-        
-    def run_old(self):
-        # Wait for ready
-        self.wait_for_button_press()
-        self._display.pixel(self._loc, self._fg)
-        while True:
-            pyb.delay(100)
-            for b,d in zip(self._button, self._b_dir):
-                if b.value()==0:
-                    self._display.pixel(self._loc, self._bg)
-                    self._loc=tuple((i+j)%32 for i,j in zip(self._loc, d))
-                    print("New coord  =(%2d, %2d)" % self._loc)
-                    self._display.pixel(self._loc, self._fg)
-                
     
     def wait_for_button_press(self):
         self._display.clear()
