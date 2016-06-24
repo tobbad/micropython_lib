@@ -38,11 +38,12 @@ class Stone:
             y = pyb.rng()%self.size[1]
         self.coord = x, y
         self.color = self.COLORS[self.shape_nr]
+        self.last_coord = (0,0)
         
     def rotate(self, board):
         collide = False
         new_shape = [ [ self.shape[y][x] for y in range(len(self.shape)) ] for x in range(len(self.shape[0]) - 1, -1, -1) ]
-        if self,check_collision(board, self.coord, new_shape):
+        if self.check_collision(board, self.coord, new_shape):
             collide= True
         else:
             self.shape = new_shape
@@ -55,18 +56,22 @@ class Stone:
             new_coord[0] = 0
         if (new_coord[0]+ len(self.shape[0])>= self.size[0]):
             new_coord[0]=  self.size[0]- len(self.shape[0])
-        if self,check_collision(board, new_coord, self.shape):
+        if self.check_collision(board, new_coord, self.shape):
             collide= True
         else:
+            self.last_coord = self.coord
             self.coord = new_coord
         return collide
     
-    def draw(self, disp, color=None):
+    def draw(self, disp, color=None, coord=None):
         if not color:
             color = self.color
+        if not coord:
+            coord = self.coord
         for y, li in enumerate(self.shape):
             for x, p in enumerate(li):
-                disp.pixel((self.coord[0]+x, self.coord[1]+y), color)
+                if p != 0:
+                    disp.pixel((coord[0]+x, coord[1]+y), color)
     
     def check_collision(self, board, coord = None, shape=None):
         if not coord:
@@ -74,9 +79,15 @@ class Stone:
         if not shape:
             shape =self.shape
         for y, line in enumerate(shape):
-            for x, p in enumerate(shape):
-                bp = board[coord[1]+y][coord[0]+x]
+            for x, p in enumerate(line):
+                coord=(coord[0]+x, coord[1]+y)
+                if not (0 <= coord[0] < self.size[0]) or not (0 <= coord[1] < self.size[1]):
+                    print("Collision with edges (%2d, %2d)" % coord)
+                    return True
+                bp = board.pixel(coord=coord)
                 if p and bp:
+                    print(p,bp)
+                    print("Collision with backgroud (%2d, %2d) = %d and %d" % (coord[0], coord[1], p, bp))
                     return True
         return False
         
@@ -87,13 +98,20 @@ class Board:
         self._width = width
         self._height = height
         self._board = [ [ 0 for x in range(self._width)] for y in range(self._height) ]
-        self._board.extend([ 1 for x in range(self._width)])
+        #self._board.extend([ 1 for x in range(self._width)])
+        print("Board size %dx%d" % (len(self._board),len(self._board[0])))
 
     def add(self, shape):
-        shape.draw(self, shape.shape_nr)
+        shape.draw(self, color=shape.shape_nr)
         
-    def pixel( coord, color):
-        self.board[coord[0]][coord[1]] = color
+    def pixel(self, coord, color=None):
+        if color:
+            if isinstance(color, (tuple,list)):
+                raise ValueError("No tuble on board allowed")
+            self._board[coord[0]][coord[1]] = color
+        else:
+            return self._board[coord[0]][coord[1]]
+
 
 class Tetris:
     
@@ -109,28 +127,33 @@ class Tetris:
         self._bg = (0,0,0)
         self._display.show()
         self._gameover = False
-        self._board = Board(self._display.width(), self._display.height() )
+        self._board = None
         
     def run_game(self):
+        self._gameover = False
+        self._board = Board(self._display.width(), self._display.height() )
         while not self._gameover:
             stone = Stone(self._display.width(), self._display.height(), y=0)
-            if stone.check_collision(self.board):
+            if stone.check_collision(self._board):
                 # Game is finished when a new introduced stone collides with 
                 # a stone on the board.
                 self._gameover = True
             collide  = False
             while not ( collide or self._gameover):
-                self._gameover = stone.draw(self._display)
+                stone.draw(self._display)
                 pyb.delay(100)
-                stone.draw(self._display, self._bg, self.board )
+                stone.draw(self._display, self._bg)
                 direction = self._b_dir[Tetris.DOWN]
                 if self._button[self.UP].value() == 0:
-                    stone.rotate(self._board)
+                    collide = stone.rotate(self._board)
                 for d in (self.LEFT, self.RIGHT):
                     if self._button[d].value() == 0:
                         direction = (self._b_dir[d][0], direction[1])
                         break
-                collide = stone.move(direction, self._board)
+                collide |= stone.move(direction, self._board)
+            if collide:
+                stone.draw(self._display)
+                self._board.add(stone)
         
     def run(self):
         while True:
@@ -152,6 +175,7 @@ class Tetris:
                 
     
     def wait_for_button_press(self):
+        self._display.clear()
         self._display.text("Push", (0,0),(1,0,0))
         self._display.text("key", (4,8),(1,0,0))
         self._display.text("to", (8,16),(1,0,0))
