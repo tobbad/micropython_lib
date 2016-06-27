@@ -26,9 +26,9 @@ class Matrix(pyb.ledmatrix.ledmatrix, Matrix_Server):
         return Matrix(width, height, depth, line_sel, color_sel, clk, le, oe)
     
     def __init__(self, width, height, depth, line_sel, color_sel, clk, le, oe):
-        self.width = width
-        self.height = height
-        self.depth = depth
+        self._width = width
+        self._height = height
+        self._depth = depth
 
     def width(self):
         return self._width

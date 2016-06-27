@@ -122,10 +122,9 @@ class Tetris:
         self._button = button
         self._b_dir = ( (0,-1), (0,1), (-1,0), (1,0) )
         self._loc = self._display.width()/2, self._display.height()/2
-        self._loc =15, 15
         self._fg = (1,0,0)
         self._bg = (0,0,0)
-        self._display.show()
+        self._display.start()
         self._gameover = False
         self._board = None
         

@@ -12,11 +12,12 @@ if os.uname()[0] == 'Linux':
     sys.path.append('../../mock')
     sys.path.append('../../applications')
 else:
+    from board import sys_config
     from led_matrix_accel import Matrix
-    matrix = Matrix.new(32,32, 3, sys_config['led_matrix']['line_sel'], sys_config['led_matrix']['color'], sys_config['led_matrix']['clk'], sys_config['led_matrix']['latch'], sys_config['led_matrix']['oe'])
+    matrix = Matrix.new(32,32, 1, sys_config['led_matrix']['line_sel'], sys_config['led_matrix']['color'], sys_config['led_matrix']['clk'], sys_config['led_matrix']['latch'], sys_config['led_matrix']['oe'])
 
 from tetris import Tetris
-from board import sys_config
+from conway import Game
 import pyb
 
 #matrix = LED_MATRIX(32, 32, 3, sys_config['led_matrix']['red'],  sys_config['led_matrix']['green'],  sys_config['led_matrix']['blue'],
@@ -32,7 +33,9 @@ if not os.uname()[0] == 'Linux':
         sw.append(pyb.Pin(s, mode=c[0], pull = c[1]))
 
     #game = Tetris(matrix, sw)
-    matrix.server()
+    game = Game(matrix, sw[0])
+    game.run(250)
+    #matrix.server()
 
 def show(cnt=1):
     res = []
