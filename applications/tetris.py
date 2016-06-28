@@ -1,11 +1,24 @@
 
 
 import pyb
+import os
+
+def show_matrix(matrix, raw = False):
+    res = [" "*(5*(len(matrix[0]))+1)]
+    for y, line in enumerate(matrix):
+        li = "%4d|" % y
+        for x,c in enumerate(line):
+            li += "%4d|" % c
+        res.append(li)
+    if not raw:
+        res="\n".join(res)
+    return res
 
 
 class Stone:
 
     SHAPES = [
+        [[0,0],[0,0]],  # Dummy shape 
         [[1, 1, 1],
          [0, 1, 0]],
 
@@ -26,11 +39,15 @@ class Stone:
         [[7, 7],
          [7, 7]]
     ]
-    COLORS = ( (1,0,0), (0,1,0), (0,0,1), (1,1,0), (0,1,1), (1,0,1), (1,1,1) )
+    COLORS = ( (0,0,0), (1,0,0), (0,1,0), (0,0,1), (1,1,0), (0,1,1), (1,0,1), (1,1,1) )
+    
+    DEBUG = False
         
-    def __init__(self, width , height, x=None, y=None):
+    def __init__(self, width , height, x=None, y=None, shape_nr = None):
         self.size = width , height
-        self.shape_nr = pyb.rng()%len(self.SHAPES)
+        self.shape_nr = shape_nr
+        if not shape_nr:
+            self.shape_nr = (pyb.rng()%(len(self.SHAPES)-1))+1
         self.shape = self.SHAPES[self.shape_nr]
         if x is None:
             x = pyb.rng()%(self.size[0]-len(self.shape[0]))
@@ -64,15 +81,20 @@ class Stone:
         return collide
     
     def draw(self, disp, color=None, coord=None):
-        if not color:
+        if color is None:
             color = self.color
-        if not coord:
+        if coord is None:
             coord = self.coord
         for y, li in enumerate(self.shape):
             for x, p in enumerate(li):
                 if p != 0:
                     disp.pixel((coord[0]+x, coord[1]+y), color)
+
+    @staticmethod
+    def shape2color(shape_nr):
+        return Stone.COLORS[shape_nr]
     
+
     def check_collision(self, board, coord = None, shape=None):
         if not coord:
             coord = self.coord
@@ -80,42 +102,96 @@ class Stone:
             shape =self.shape
         for y, line in enumerate(shape):
             for x, p in enumerate(line):
-                coord=(coord[0]+x, coord[1]+y)
-                if not (0 <= coord[0] < self.size[0]) or not (0 <= coord[1] < self.size[1]):
-                    print("Collision with edges (%2d, %2d)" % coord)
+                pcoord=(coord[0]+x, coord[1]+y)
+                #print(x,y,pcoord[0], pcoord[1], p)
+                if not (0 <= pcoord[0] < self.size[0]) or not (0 <= pcoord[1] < self.size[1]):
+                    if self.DEBUG:
+                        print("Collision with edges (%2d, %2d)" % pcoord)
                     return True
-                bp = board.pixel(coord=coord)
-                if p and bp:
-                    print(p,bp)
-                    print("Collision with backgroud (%2d, %2d) = %d and %d" % (coord[0], coord[1], p, bp))
+                bp = board.pixel(coord=pcoord)
+                if (p != 0)  and  (bp != 0):
+                    if self.DEBUG:
+                        print("Collision with backgroud (%2d, %2d) = %d and %d" % (pcoord[0], pcoord[1], p, bp))
                     return True
         return False
+        
+    def __str__(self):
+        col = "(%d, %d, %d)" % self.color
+        res = ["Shape with nr %d @ (%d, %d) col %s" % (self.shape_nr, self.coord[0], self.coord[1], col) ]
+        res.extend(show_matrix(self.shape, True))
+        return "\n".join(res)
         
         
 class Board:
     
+    DEBUG = False
+    
     def __init__(self, width, height):
-        self._width = width
-        self._height = height
-        self._board = [ [ 0 for x in range(self._width)] for y in range(self._height) ]
-        #self._board.extend([ 1 for x in range(self._width)])
-        print("Board size %dx%d" % (len(self._board),len(self._board[0])))
+        self.width = width
+        self.height = height
+        self.board = [ [ 0 for y in range(self.height)] for x in range(self.width) ]
+        #self.board.extend([ 1 for x in range(self.height)])
+        print("Board size %dx%d" % (len(self.board),len(self.board[0])))
 
     def add(self, shape):
         shape.draw(self, color=shape.shape_nr)
         
     def pixel(self, coord, color=None):
-        if color:
+        if color is not None:
             if isinstance(color, (tuple,list)):
-                raise ValueError("No tuble on board allowed")
-            self._board[coord[0]][coord[1]] = color
+                raise ValueError("No tuple on board allowed", color)
+            self.board[coord[0]][coord[1]] = color
         else:
-            return self._board[coord[0]][coord[1]]
+            return self.board[coord[0]][coord[1]]
+    
+    def copy_line(self, from_y, to_y):
+        if self.DEBUG:
+            print("Copy line %d -> %d" % (from_y, to_y))
+        for x in range(self.width):
+            val = self.pixel((x,from_y)) if from_y>0 else 0
+            self.pixel((x,to_y), val)
+
+    def remove_full_line(self):
+        full_lines = []
+        for y in range(self.height-1, -1, -1):
+            line_full = True
+            for x in range(self.width):
+                if self.pixel((x,y)) == 0:
+                    break
+            else:
+                full_lines.append(y)
+        if self.DEBUG:
+            print(full_lines)
+        shift_cnt = 0
+        if len(full_lines)>0:
+            for y in range(self.height-1, -1, -1):
+                from_y = y-shift_cnt
+                while from_y in full_lines:
+                    shift_cnt+=1
+                    from_y = y-shift_cnt
+                if shift_cnt > 0:
+                    self.copy_line(from_y, y)
+        return len(full_lines)>0
+
+    def to_term(self):
+        res = []
+        print("   |"+"|".join(( " %2d" % i for i in range(self.width))))
+        print("-"+("-"*(4*self.width+3)))
+        for y in range(self.height):
+            l="%2d |" % y
+            for x in range(self.width):
+                val = self.pixel((x,y))
+                l += ("   |" if val == 0 else " %1d |" % val)
+            print(l)
+            print("-"+("-"*(4*self.width+3)))
+        return 
 
 
 class Tetris:
     
-    UP, DOWN, LEFT, RIGHT = 0,1,2,3
+    UP, DOWN, LEFT, RIGHT = range(4)
+    
+    DEBUG = False
     
     def __init__(self, display, button):
         self._display = display
@@ -127,7 +203,16 @@ class Tetris:
         self._display.start()
         self._gameover = False
         self._board = None
-        
+     
+    def redraw(self):
+        if self.DEBUG:
+            print("Redraw display")
+        self._display.clear()
+        for x in range(self._display.width()):
+            for y in range(self._display.height()):
+                color = Stone.shape2color(self._board.pixel((x,y)))
+                self._display.pixel((x,y), color)
+     
     def run_game(self):
         self._gameover = False
         self._board = Board(self._display.width(), self._display.height() )
@@ -137,22 +222,28 @@ class Tetris:
                 # Game is finished when a new introduced stone collides with 
                 # a stone on the board.
                 self._gameover = True
-            collide  = False
-            while not ( collide or self._gameover):
+            collide_y  = False
+            while not ( collide_y or self._gameover):
                 stone.draw(self._display)
                 pyb.delay(100)
                 stone.draw(self._display, self._bg)
                 direction = self._b_dir[Tetris.DOWN]
+                collide_y = stone.move(direction, self._board)
+                if collide_y: 
+                    break
+                direction = (0, 0)
                 if self._button[self.UP].value() == 0:
-                    collide = stone.rotate(self._board)
+                    stone.rotate(self._board)
                 for d in (self.LEFT, self.RIGHT):
                     if self._button[d].value() == 0:
                         direction = (self._b_dir[d][0], direction[1])
                         break
-                collide |= stone.move(direction, self._board)
-            if collide:
+                collide_x = stone.move(direction, self._board)
+            if collide_y:
                 stone.draw(self._display)
                 self._board.add(stone)
+                if self._board.remove_full_line():
+                    self.redraw()
         
     def run(self):
         while True:

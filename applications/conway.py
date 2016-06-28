@@ -17,6 +17,7 @@ class Game():
         self.board = [[[self.CELL_DEAD for y in range(self.disp.height())] for x in range(self.disp.width()) ] for cnt in range(2)]
         self.board_idx = 0
         self.total_alive = 0
+        self.total_changed = 0
         self.new_game_pin = new_game_pin
         self.clear_board()
         self.disp.clear()
@@ -27,6 +28,7 @@ class Game():
             for y, cell in enumerate(column):
                 self.board[0][x][y] = self.CELL_DEAD
                 self.board[1][x][y] = self.CELL_DEAD
+        self.board_idx = 0
        
    
     def seed(self, seed_cnt):
