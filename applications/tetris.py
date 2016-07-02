@@ -193,7 +193,7 @@ class Tetris:
     
     DEBUG = False
     
-    def __init__(self, display, button):
+    def __init__(self, display, button, t_inc=100):
         self._display = display
         self._button = button
         self._b_dir = ( (0,-1), (0,1), (-1,0), (1,0) )
@@ -203,6 +203,9 @@ class Tetris:
         self._display.start()
         self._gameover = False
         self._board = None
+        self._move_inc_time_ms = t_inc
+        self._move_y_to_move_in_ration = 2
+        self._rotation_to_move_in_ration = 2
      
     def redraw(self):
         if self.DEBUG:
@@ -212,10 +215,12 @@ class Tetris:
             for y in range(self._display.height()):
                 color = Stone.shape2color(self._board.pixel((x,y)))
                 self._display.pixel((x,y), color)
-     
+    
+    
     def run_game(self):
         self._gameover = False
         self._board = Board(self._display.width(), self._display.height() )
+        keys = [0 for i in range(len(self._button)+1)] # last element is count of scans
         while not self._gameover:
             stone = Stone(self._display.width(), self._display.height(), y=0)
             if stone.check_collision(self._board):
@@ -223,29 +228,73 @@ class Tetris:
                 # a stone on the board.
                 self._gameover = True
             collide_y  = False
+            stone.draw(self._display)
+            pyb.delay(100)
+            for i in range(len(keys)):
+                keys[i] = 0
+            free_fall = False
+            move_y_cnt=0
+            roatation_cnt=0
+            next_move_time = pyb.millis()+self._move_inc_time_ms
             while not ( collide_y or self._gameover):
-                stone.draw(self._display)
-                pyb.delay(100)
-                stone.draw(self._display, self._bg)
-                direction = self._b_dir[Tetris.DOWN]
-                collide_y = stone.move(direction, self._board)
-                if collide_y: 
-                    break
-                direction = (0, 0)
-                if self._button[self.UP].value() == 0:
-                    stone.rotate(self._board)
-                for d in (self.LEFT, self.RIGHT):
-                    if self._button[d].value() == 0:
-                        direction = (self._b_dir[d][0], direction[1])
-                        break
-                collide_x = stone.move(direction, self._board)
+                if pyb.millis()>next_move_time:
+                    stone.draw(self._display, self._bg)
+                    #
+                    # Y moves
+                    #
+                    move_y_cnt = (move_y_cnt+1)%self._move_y_to_move_in_ration
+                    if move_y_cnt == 0:
+                        if free_fall:
+                            while not collide_y:
+                                collide_y = stone.move(self._b_dir[Tetris.DOWN], self._board)
+                        else:
+                            collide_y = stone.move(self._b_dir[Tetris.DOWN], self._board)
+                        if collide_y: 
+                            break
+                    #
+                    # Rotations
+                    #
+                    roatation_cnt = (roatation_cnt+1)%self._rotation_to_move_in_ration
+                    if roatation_cnt == 0:
+                        if keys[self.UP] >= keys[-1]>>1:
+                            stone.rotate(self._board)
+                    #
+                    # X moves 
+                    #
+                    direction = (0, 0)
+                    for d in (self.LEFT, self.RIGHT):
+                        if keys[d] >= keys[-1]>>1:
+                            direction = (self._b_dir[d][0], direction[1])
+                            break
+                    collide_x = stone.move(direction, self._board)
+                    stone.draw(self._display)
+                    #
+                    # Free free_fall
+                    #
+                    if keys[self.DOWN] >= keys[-1]>>1: 
+                        free_fall = True
+                        if self.DEBUG:
+                            print("Set free fall %d/%d" % (keys[self.DOWN], keys[-1]))
+                    #
+                    # Cleanup prepare next move update
+                    #
+                    for i in range(len(keys)):
+                        keys[i] = 0
+                    next_move_time = pyb.millis()+self._move_inc_time_ms
+                else:
+                    # Capture Keys
+                    for i, key in enumerate(self._button):
+                        keys[i] += 1 if key.value()==0 else 0
+                    keys[-1] += 1
+                    pyb.delay(10)
             if collide_y:
                 stone.draw(self._display)
                 self._board.add(stone)
                 if self._board.remove_full_line():
                     self.redraw()
         
-    def run(self):
+    def run(self, t_inc=100):
+        self._move_inc_time_ms = t_inc
         while True:
             self.wait_for_button_press()
             self.run_game()

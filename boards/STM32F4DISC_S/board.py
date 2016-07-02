@@ -25,5 +25,5 @@ sys_config = {
                   'clk':'PE11', 
                   'latch':'PE10',
                   'oe':'PE12'},
-    'pmod':{'gps':{'uart':3, 'reset':'PC4','onepps':'PA3','fix':'PC14'} }
+    'pmod':{'gps':{'uart':3, 'reset':'PC4','one_pps':'PB1','fix':'PC14'} }
 }

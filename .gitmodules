@@ -1,0 +1,3 @@
+[submodule "micropyGPS"]
+	path = micropyGPS
+	url = https://github.com/inmcm/micropyGPS

@@ -8,7 +8,8 @@ from pyb import rng, delay
 class Game():
     
     CELL_DEAD, CELL_DYING, CELL_ALIVE, CELL_NEWBORN = range(4)
-    COLOR_DEAD, COLOR_DYING, COLOR_ALIVE, COLOR_NEWBORN = (0,0,0) , (1,0,0), (0,1,0), (0,0,1)
+    #COLOR_DEAD, COLOR_DYING, COLOR_ALIVE, COLOR_NEWBORN = (0,0,0) , (1,0,0), (0,1,0), (0,0,1)
+    COLOR_DEAD, COLOR_DYING, COLOR_ALIVE, COLOR_NEWBORN = (0,0,0) , (0,0,0), (0,1,0), (0,1,0)
     DEBUG = True
     
     def __init__(self, display, new_game_pin = None):
