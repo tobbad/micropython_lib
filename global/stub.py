@@ -21,13 +21,15 @@ class Stub:
     I2C = 2
     GPIO = 3
 
+    ESC = 0x1B
+
     def __init__(self):
         pass
 
     def open(self, com):
         ''' Open a certain hw item for usage
 
-        returns a class which knows qhat kind of hw device it is.
+        returns a class which knows what kind of hw device it is.
         '''
         raise ValueError("Must be implemented in derived class")
 

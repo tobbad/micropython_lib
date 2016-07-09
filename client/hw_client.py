@@ -10,25 +10,25 @@
 from stub import SPI_Stub
 
 
-class SPI(SPI_Stub):
+class SPI(SPI_Stub, client):
 
     MSB = SPI_Stub.CTRL_FIRSTBIT_MSB
     LSB = SPI_Stub.CTRL_FIRSTBIT_LSB
 
     def __init__(self, bus, *para):
-        pass
+        self.__bus = bus
 
     def init(self, mode, baudrate=328125, prescaler=None, polarity=1, phase=0, bits=8, firstbit=SPI.MSB, crc=None):
         if prescaler != None:
             raise Exception("Not supported")
         if crc != None:
             raise Exception("Not supported")
-        self.open(self.SPI)
         self.ioctl(self, self.CTRL_BAUDRATE, baudrate)
         self.ioctl(self, self.CTRL_POLARITY, polarity)
         self.ioctl(self, self.CTRL_PHASE, phase)
         self.ioctl(self, self.CTRL_BITS, bits)
         self.ioctl(self, self.CTRL_FIRSTBIT, firstbit)
+        self.open(self.SPI)
 
     def recv(self, recv, timeout=5000):
         self.ioctl(self.CTRL_RECV_TIMEOUT, timeout)
