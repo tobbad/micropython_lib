@@ -2,6 +2,7 @@
 
 import struct
 import serial
+
 class Matrix(object):
 
     HELLO, WIDTH, HEIGHT, DEPTH, PIXEL, FILL, CLEAR, TEXT = range(48, 48+8)
