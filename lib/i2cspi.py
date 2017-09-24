@@ -1,8 +1,18 @@
 #
 # Base class for all  i2c based sensors
 #
-import pyb
 import struct
+
+class EMPTY_SELECTOR:
+
+    def low(self):
+        pass
+
+    def high(self):
+        pass
+
+    def name(self):
+        return "None"
 
 
 class COM_SERIAL():
@@ -17,7 +27,10 @@ class COM_SERIAL():
         if addr_size not in (self.ADDR_MODE_8, self.ADDR_MODE_16):
             raise Exception("Address size not 8 or 16 not supported")
         self.com = communication
-        self.selector = dev_selector
+        if dev_selector is None:
+            self.selector = EMPTY_SELECTOR()
+        else:
+            self.selector = dev_selector
         self.addr_size = addr_size
 
     def init(self):
@@ -46,6 +59,8 @@ class COM_SERIAL():
             self.addr_size = self.ADDR_MODE_8
 
     def write(self, addr, value):
+        if isinstance(value, int):
+            value = bytearray([value,])
         self.write_binary(addr, value)
 
     def read(self, addr):
@@ -92,6 +107,7 @@ class COM_I2C(COM_SERIAL):
 class COM_SPI(COM_SERIAL):
 
     READ_CMD = 0x80
+    WRITE_CMD = 0x00
     MULTIPLEBYTE_CMD = 0x40
 
     def __init__(self, communication, dev_selector, addr_size, msb_first):
@@ -118,31 +134,48 @@ class COM_SPI(COM_SERIAL):
         else:
             print("Bidirectional Mode not supported")
 
-    def set_multi_byte(self, addr):
-        return (addr | self.MULTIPLEBYTE_CMD)
+    def set_transfer_command(self, addr, command):
+        shift = 0 if self.addr_size == self.ADDR_MODE_8 else 8
+        return (addr | (command << shift))
+
+    def addr_to_bytearray(self, addr):
+        res = bytearray(1 if self.addr_size == self.ADDR_MODE_8 else 2)
+        if self.addr_size == self.ADDR_MODE_16:
+            res[0] = addr>>8
+            res[1] = addr&0x00FF
+        else:
+            res[0] = addr
+        return res
 
     def read_binary(self, reg_addr, byte_cnt):
-        reg_addr |= self.READ_CMD
+        reg_addr = self.set_transfer_command(reg_addr, self.READ_CMD)
         if byte_cnt > 1:
-            reg_addr = self.set_multi_byte(reg_addr)
+            reg_addr = self.set_transfer_command(reg_addr, self.MULTIPLEBYTE_CMD)
+        reg_addr_buf = self.addr_to_bytearray(reg_addr)
+        addr_len = len(reg_addr_buf)
+        sr_data = reg_addr_buf + bytearray(byte_cnt)
         self.selector.low()
-        self.com.send(reg_addr)
-        buf = self.com.recv(byte_cnt)
+        res = self.com.send_recv(sr_data)
         self.selector.high()
         if self.DEBUG:
-            print("Read  (%s) reg addr 0x%02x, data: %s" %
-                  (self.id, reg_addr, self.buf2Str(buf)))
-        return buf
+            fmt = "Read  (%s) reg addr %s, data: %s"
+            print(fmt % (self.id, self.buf2Str(reg_addr_buf), self.buf2Str(res[addr_len:])))
+        return res[addr_len:]
 
     def write_binary(self, reg_addr, data):
-        if len(data) > 1:
-            reg_addr |= self.MULTIPLEBYTE_CMD
-        self.selector.low()
-        self.com.send(reg_addr)
-        for b in data:
-            self.com.send(b)
         if self.DEBUG:
-            print("Write (%s) reg addr 0x%02x, data: %s" %
-                  (self.id, reg_addr, self.buf2Str(data)))
+            print("Write command 0x%02x" % self.WRITE_CMD)
+        reg_addr = self.set_transfer_command(reg_addr, self.WRITE_CMD)
+        if self.DEBUG:
+            print("New addr 0x%04x" % reg_addr)
+        if len(data) > 1:
+            reg_addr = self.set_transfer_command(reg_addr, self.MULTIPLEBYTE_CMD)
+        reg_addr_buf = self.addr_to_bytearray(reg_addr)
+        sr_data = reg_addr_buf + bytearray(data)
+        self.selector.low()
+        self.com.send_recv(sr_data)
         self.selector.high()
-
+        if self.DEBUG:
+            addr_fmt = ("0x%02x") if self.addr_size == self.ADDR_MODE_8 else ("0x%04x")
+            fmt = "Write (%s) reg addr %s, data: %s"
+            print(fmt % (self.id, self.buf2Str(reg_addr_buf), self.buf2Str(data)))

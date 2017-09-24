@@ -7,7 +7,7 @@ import sys
 
 if os.uname()[0] == 'Linux':
     sys.path.append('../../display')
-    from led_matrix_client import Matrix 
+    from led_matrix_client import Matrix
     matrix = Matrix('/dev/ttyACM0')
     sys.path.append('../../mock')
     sys.path.append('../../applications')
@@ -22,8 +22,8 @@ from conway import Game
 import pyb
 
 #matrix = LED_MATRIX(32, 32, 3, sys_config['led_matrix']['red'],  sys_config['led_matrix']['green'],  sys_config['led_matrix']['blue'],
-#                    sys_config['led_matrix']['a'], sys_config['led_matrix']['b'], sys_config['led_matrix']['c'], sys_config['led_matrix']['d'], 
-#                    sys_config['led_matrix']['clk'], sys_config['led_matrix']['latch'], sys_config['led_matrix']['oe'])   
+#                    sys_config['led_matrix']['a'], sys_config['led_matrix']['b'], sys_config['led_matrix']['c'], sys_config['led_matrix']['d'],
+#                    sys_config['led_matrix']['clk'], sys_config['led_matrix']['latch'], sys_config['led_matrix']['oe'])
 
 ti=pyb.Timer(8)
 matrix.timer(ti)
@@ -54,14 +54,14 @@ def gps():
     # Baudrate is 9600bps, with the standard 8 bits, 1 stop bit, no parity
     # Also made the buffer size very large (1000 chars) to accommodate all the characters that stack up
     # each second
-    uart = pyb.UART(sys_config['pmod']['gps']['uart'], 9600, read_buf_len=1000)
+    uart = pyb.UART(sys_config['pmod']['p3']['uart'], 9600, read_buf_len=1000)
 
-    # Releas Reset
-    reset = pyb.Pin(sys_config['pmod']['gps']['reset'], pyb.Pin.OUT_PP)
+    # Release Reset
+    reset = pyb.Pin(sys_config['pmod']['p3']['reset'], pyb.Pin.OUT_PP)
     reset.high()
 
     # Create an external interrupt on pin X8
-    pps_pin = pyb.Pin(sys_config['pmod']['gps']['one_pps'], pyb.Pin.IN, pull=pyb.Pin.PULL_UP)
+    pps_pin = pyb.Pin(sys_config['pmod']['p3']['one_pps'], pyb.Pin.IN, pull=pyb.Pin.PULL_UP)
     extint = pyb.ExtInt(pps_pin, pyb.ExtInt.IRQ_FALLING, pyb.Pin.PULL_UP, pps_callback)
 
     # Main Infinite Loop

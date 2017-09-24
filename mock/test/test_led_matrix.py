@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Unit test for LoraWan MAC
+# Unit test for Led matrix
 #
 import unittest
 import sys
@@ -9,11 +9,11 @@ from micropython_lib.mock.led_matrix import Matrix
 
 
 class CreateMatrixMock(unittest.TestCase):
-    
+
     SIZE = (4, 6, 3)
-    
+
     DEBUG = False
-    
+
     def setUp(self):
         self.matrix = Matrix(self.SIZE[0], self.SIZE[1], self.SIZE[2])
 
@@ -44,7 +44,7 @@ class CreateMatrixMock(unittest.TestCase):
     def test_clear(self):
         fill_color = (1,4,8)
         exp_color = (0,0,0)
-        self.matrix.fill(fill_color)      
+        self.matrix.fill(fill_color)
         self.matrix.clear()
         data = self.matrix.board()
         for x in range(self.SIZE[0]):
@@ -63,7 +63,7 @@ class CreateMatrixMock(unittest.TestCase):
                 cell = self.matrix.board()[x][y]
                 res = all( i==j for i,j in zip(cell,exp_color))
                 self.assertTrue(res)
-         
+
 
 
 

@@ -15,11 +15,7 @@ class HW:
     GPIO =3
 
 
-class Stub:
-
-    SPI = 1
-    I2C = 2
-    GPIO = 3
+class Stub(HW):
 
     ESC = 0x1B
 

@@ -78,5 +78,9 @@ class multibyte():
         data = struct.pack(">H", value)
         self.write_binary(addr, data)
 
+    def write_u16_r(self, addr, value):
+        data = struct.pack("<H", value)
+        self.write_binary(addr, data)
+
     def write_u24_r(self, addr, value):
         self.__write(addr, value, 3, lsb_first=False)
