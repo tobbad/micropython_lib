@@ -3,7 +3,7 @@
 import pyb
 
 led = pyb.LED(1)
-uart = pyb.UART(6, 28800)
+uart = pyb.UART(1, 28800)
 
 idx=0
 while True:
