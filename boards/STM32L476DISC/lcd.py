@@ -46,7 +46,7 @@ class LCD(LLACC):
     CR_BUFEN = (stm.LCD_CR, 8, 0x01)
     CR_MUX_SEG = (stm.LCD_CR, 7, 0x01)
     CR_BIAS = (stm.LCD_CR, 5, 0x03)
-    CR_DUTY = (stm.LCD_CR, 3, 0x03)
+    CR_DUTY = (stm.LCD_CR, 2, 0x07)
     CR_VSEL = (stm.LCD_CR, 1, 0x01)
     CR_LCDEN = (stm.LCD_CR, 0, 0x01)
     FCR_PS = (stm.LCD_FCR, 22, 0x0F)
@@ -69,6 +69,21 @@ class LCD(LLACC):
     CLR_SOFC = (stm.LCD_CLR, 1, 0x01)
     
     def __init__(self):
-        pass
+        self.register(self.FCR_PS, 0)
+        self.register(self.FCR_DIV, 15)
+        self.register(self.CR_DUTY, 3)
+        self.register(self.CR_BIAS, 2)
+        self.register(self.CR_VSEL, 0)
+        self.register(self.FCR_CC, 5)
+        self.register(self.FCR_DEAD, 0)
+        self.register(self.FCR_PON, 4)
+        self.register(self.FCR_HD, 0)
+        self.register(self.FCR_BLINK, 0)
+        self.register(self.FCR_BLINKF, 2)
+        self.register(self.CR_MUX_SEG, 0)
+    
+    
+        
+        
     
     
