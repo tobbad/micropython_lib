@@ -9,24 +9,21 @@ class JRPC_SRV:
     
     def __init__(self, com):
         self._com=com
-        self._buf=bytearray(100)
-        
         
     def _write(self, data):
         self._com.write(data)
         
-    def _read(self, buffer):
-        cnt=self._com.readinto(buffer)
-        return cnt if cnt is not None else 0
+    def _read(self):
+        data=self._com.read()
+        return data
     
-
     def start(self):
         self._write(b"")
         while True:
-            cnt = self._read(self._buf)
-            if cnt>0:
-                self._write(self._buf)
-                print("%d bytes data" % (cnt) )
-            pyb.delay(1000)
-            print("Tick")
+            buf = self._read()
+            if buf is not None:
+                self._write(buf)
+                #print("%d bytes data." % (len(buf)) )
+            #pyb.delay(1000)
+            #print("Tick")
         

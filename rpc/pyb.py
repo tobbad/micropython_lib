@@ -7,20 +7,36 @@
 
 """
 import serial
+from micropython_lib.common.datalink import Datalink
 import os
+import time
 
-uart_dev = os.sep.join(("", "dev", "ttyACM2"))
+uart_dev = os.sep.join(("", "dev", "ttyACM1"))
 baud = 115200
+timeout =0.0018
 
+
+class dl_com(serial.Serial):
+
+    TIMEOUT = timeout
+
+    def any(self):
+        wait_cnt = self.in_waiting
+        if wait_cnt == 0:
+            time.sleep(self.TIMEOUT)
+        return self.in_waiting>0
 
 def main():
-    com = serial.Serial(uart_dev, baudrate=baud, timeout=80.0/baud)
+    ser = dl_com(uart_dev, baudrate=baud, timeout=80.0/baud)
+    com = Datalink(ser, debug=False)
     while True:
         data=bytes("Hello world!", "ascii")
-        com.write(data)
-        ans = com.read(100)
-        if ans is not None and len(ans)>0:
-            print(ans)
+        ans=com.write(data)
+        if ans:
+            ans = com.read()
+            print("received answer")
+            if ans is not None and len(ans)>0:
+                print(ans)
 
 
 if __name__ == '__main__':
