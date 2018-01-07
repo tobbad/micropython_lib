@@ -12,6 +12,7 @@ from micropython_lib.mock.helper import calc_crc
 import crcmod.predefined
 import struct
 import random
+from micropython_lib.rpc.pyb import dl_com
 
 
 #@unittest.skip("Skipping control")
@@ -201,7 +202,22 @@ class CHECK_READ(unittest.TestCase):
         #self.phy.set_ack(self.dut)
         self.dut.echo()
 
+class Test_Remote(unittest.TestCase):
 
+    SER_DEV='/dev/ttyACM0'
+    
+    def setUp(self):
+        self._com=dl_com(self.SER_DEV, baudrate=115200)
+        self._dl=Datalink(self._com)
+    
+    def teardown(self):
+        self._com.close()
+    
+    def test_send_receive(self):
+        data = "Hello world"
+        self._dl.write(data)
+        obt=self._dl.read_str()
+        self.assertEqual(data, obt)
 
 if __name__ == '__main__':
     unittest.main()

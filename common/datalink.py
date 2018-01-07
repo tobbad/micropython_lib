@@ -13,7 +13,7 @@
     @author: Tobias Badertscher
 """
 import struct
-
+from time import sleep
 
 class Datalink:
     
@@ -36,7 +36,7 @@ class Datalink:
 
     CRC_QUOTIENT = 0xD9     # This is the quotient for CRC-8 WCDMA 
     
-    def __init__(self,  phy, retry_cnt=5, debug=False):
+    def __init__(self,  phy, retry_cnt=5, baudrate=115200, debug=False):
         ''' Constructor
         phy: Low level physical interface with minimal functions:
              read: Read available chars and return as byte buffer,
@@ -48,6 +48,7 @@ class Datalink:
         debug: Either True or False: Output debug information.
         '''
         self.retry_cnt =retry_cnt
+        self._baudrate = baudrate
         self.DEBUG = debug        
         self.__phy = phy
         self.REV_ESC_MAP={}
@@ -87,6 +88,11 @@ class Datalink:
     def write_raw(self, data, packet_type):
         if isinstance(data,  int):
             data = [data, ]
+        if isinstance(data,  str):
+            try:
+                data = bytearray(data, 'ascii')
+            except:
+                data = bytearray(data)
         res = self.header(packet_type)
         for item in data:
             val = self.ESC_MAP.get(item, [item,])
@@ -96,7 +102,11 @@ class Datalink:
         res.append(self.ESCAPE['EOF'])
         fmt = "%dB" % len(res)
         res = struct.pack(fmt,  *res)
-        self.__phy.write(res)
+        byte_cnt = self.__phy.write(res)
+        if self.DEBUG:
+            print("Raw written \"%s\"" % (res))
+        return byte_cnt
+        
 
     def write(self, data):
         '''Send data in a frame to the phy.
@@ -139,8 +149,8 @@ class Datalink:
             print("Scan data of lenght %d" % (len(data)))
         for idx, character in enumerate(data):
             if self.DEBUG:
-                pchr = '%s' % chr(character) if str(character).isalnum() else '.'
-                print("CHAR 0x%02x (%s)" % ( character,  pchr))
+                pchr = '%s' % chr(character) if 32<=character<127 else '.'
+                print("CHAR 0x%02x (%s)" % ( character,  pchr), end="")
             if character == self.ESCAPE['SOF']:
                 sof_detected = True
                 if self.DEBUG:
@@ -165,7 +175,9 @@ class Datalink:
                 remote_crc = res[-1]
                 my_crc=self.crc(res[:-1])
                 if self.DEBUG:
-                    print("  ==> Check CRC: 0x%02x == 0x%02x" %(my_crc, remote_crc) )
+                    print("  ==> Check CRC: 0x%02x == 0x%02x (%s)" 
+                          %(my_crc, remote_crc, 
+                            "OK" if my_crc == remote_crc else "FAIL") )
                 if my_crc != remote_crc:
                     if self.DEBUG:
                         print("  ==> CRC Does not match")
@@ -174,6 +186,10 @@ class Datalink:
                             print("  ==> CRC for data does not match: NACK") 
                         self.send_state('NACK')
                     return None, None, unparsed_data
+                if packet_type == self.PACKET_TYPE['DATA']:
+                    if self.DEBUG:
+                        print("  Send ACK")
+                    self.send_state('ACK')
                 result = res[:-1] # Remove CRC
                 break
             if is_escape:
@@ -193,26 +209,31 @@ class Datalink:
                         print("  ==> Data(0x%02x)" % (character))
                     res.append(character)
                     continue
+        if result is  None:
+            packet_type = None
+            unparsed_data = data
         return packet_type,  result,  unparsed_data
      
      
-    def read_raw(self):
+    def read_raw(self, timeout=1.0):
         ''' Read data form the communication interface
         '''
-        retry = self.retry_cnt
+        sleep_step_s = 0.005
         packet_type = None
         result = None
-        for retry in range(self.retry_cnt):
+        wait_time_s = 0
+        while wait_time_s < timeout:
             while self.__phy.any():
                 self.raw_data += self.__phy.read()
             if len(self.raw_data) == 0:
+                sleep(sleep_step_s)
+                wait_time_s += sleep_step_s
                 continue
             packet_type,  result, self.raw_data = self.scan_raw_data(self.raw_data)
             if packet_type is not None:
                 break
-        if packet_type == self.PACKET_TYPE['DATA'] and result is not None:
-            # Acknowledge only data package
-            self.send_state('ACK')
+        if self.DEBUG and result is not None:
+            print("Received %s : %s (wait %f s)" % (str(packet_type),  result, wait_time_s))
         return packet_type, result
     
     
@@ -222,12 +243,20 @@ class Datalink:
               packet_type == self.PACKET_TYPE['CONTROL']:
             packet_type, data = self.read_raw()
         return data
+    
+    def read_str(self):
+        data = self.read()
+        if isinstance(data, list):
+            data = "".join([chr(i) for i in data])
+        return data
 
     def recv_state(self):
         res = None
         packet_type, data = self.read_raw()
-        if packet_type is not None:
+        if packet_type is not None and packet_type == self.PACKET_TYPE['CONTROL']:
             res = data[0]
+            if self.DEBUG:
+                print("Received state 0x%02x" % ( res ))
         return res
            
     def echo(self):
