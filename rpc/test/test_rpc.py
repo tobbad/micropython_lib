@@ -2,7 +2,7 @@
 import sys
 sys.path.append("../..")
 import unittest
-from rpc.mp_server import SerDes
+from serdes_json import SerDes
 from common.datalink import Datalink
 from rpc.pyb import dl_com
 import json
@@ -81,12 +81,14 @@ class TestRemoteServer(unittest.TestCase):
         self.assertEqual(error_obt['message'], 'Parse error')
         self.assertIsNone(error_obt['data'])
 
-    def test_dir(self):
+    def test_get_objects(self):
         send_id, data = self._serdes.req_to_data("get_objects")
         self._dl.write(data)
         data = self._dl.read_str()
         self.assertIsNotNone(data)
         id_recv, result_obt, error_obt = self._serdes.data_to_resp(data)
+        self.assertIsNotNone(result_obt)
+        self.assertIsNone(error_obt)
         
 if __name__ == '__main__':
     unittest.main()
