@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
-import sys
-sys.path.append("../..")
-import unittest
-from rpc.mp_server import SerDes
 import json
-from common.datalink import Datalink
-from rpc.pyb import dl_com
-import time
+import unittest
+from micropython_lib.rpc.serdes_json import SerDes
+from micropython_lib.common.datalink import Datalink
+from micropython_lib.rpc.pyb import dl_com
 
-class TestSerDes(unittest.TestCase):
+class TestJsonSerDes(unittest.TestCase):
     
     def setUp(self):
         self.serdes = SerDes()
@@ -16,6 +13,9 @@ class TestSerDes(unittest.TestCase):
     def teardown(self):
         pass
         
+    #
+    # Test request object
+    #
     def test_req2j_no_data(self):
         methodName = "Blabla"
         req_id, res = self.serdes.req_to_data("Blabla")
@@ -69,6 +69,16 @@ class TestSerDes(unittest.TestCase):
         self.assertIsInstance(jres['params'], list)
         for exp, opt  in zip(value, jres['params']):
             self.assertEqual(exp, opt)
+            
+    def test_req2j_object(self):
+        class simple:
+            def __init__(self):
+                pass
+        inst = simple()
+        res = self.serdes.resp_to_data(inst)
+        self.assertIsNone(res)        
+        
+        
     #
     # Test responce to data conversion
     #
@@ -202,41 +212,6 @@ class TestSerDes(unittest.TestCase):
         self.assertEqual(exp_id,id_res)
         self.assertEqual(exp_result,result)
         self.assertEqual(None,error)
-        
-class TestRemoteServer(unittest.TestCase):
-    
-    COM_DEV='/dev/ttyACM1'
-    
-    def setUp(self):
-        self._com=dl_com(self.COM_DEV, baudrate=115200, timeout=1.0)
-        self._com.reset_input_buffer()
-        self._dl=Datalink(self._com)
-        #self._dl.DEBUG=True
-        self._serdes = SerDes()
-    
-    def teardown(self):
-        self._com.close()
-        
-    def test_method_call_OK(self):
-        send_id, data = self._serdes.req_to_data("p", (1,))
-        self._dl.write(data)
-        data = self._dl.read_str()
-        self.assertIsNotNone(data)
-        id_recv, result_obt, error_obt = self._serdes.data_to_resp(data)
-        self.assertEqual(result_obt, 'OK')
-        self.assertEqual(error_obt, None)
-        
-    def test_method_call_error(self):
-        send_id, data = self._serdes.req_to_data("e", (1,))
-        self._dl.write(data)
-        data = self._dl.read_str()
-        self.assertIsNotNone(data)
-        id_recv, result_obt, error_obt = self._serdes.data_to_resp(data)
-        self.assertEqual(result_obt, None)
-        self.assertEqual(id_recv, send_id)
-        self.assertEqual(error_obt['code'], -32700)
-        self.assertEqual(error_obt['message'], 'Error')
-        self.assertIsNone(error_obt['data'])
 
         
 if __name__ == '__main__':
