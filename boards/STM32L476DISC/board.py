@@ -11,9 +11,9 @@ config = {
     'cs43l22': {'i2c_bus': 1, 'i2c_addr': 0x94>>1, 'resetPin': 'E3'},
     'switch':{'pins':['PA0','PA1','PA5','PA2', 'PA3'], 
               'name':['center','left','down','right','up'],
-              'conf':[(pyb.Pin.IN, pyb.Pin.PULL_UP),(pyb.Pin.IN, pyb.Pin.PULL_UP),
-                      (pyb.Pin.IN, pyb.Pin.PULL_UP),(pyb.Pin.IN, pyb.Pin.PULL_UP),
-                      (pyb.Pin.IN, pyb.Pin.PULL_UP)]},
+              'conf':[(pyb.Pin.IN, pyb.Pin.PULL_DOWN),(pyb.Pin.IN, pyb.Pin.PULL_DOWN),
+                      (pyb.Pin.IN, pyb.Pin.PULL_DOWN),(pyb.Pin.IN, pyb.Pin.PULL_DOWN),
+                      (pyb.Pin.IN, pyb.Pin.PULL_DOWN)]},
     'led':{'pins':['B2','E8'], 'name':['red','green'] },
 }
 
