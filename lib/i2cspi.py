@@ -72,21 +72,27 @@ class COM_SERIAL():
     def unit(self):
         return "NA"
 
+    def recv(self, *args, **kwargs):
+        self.com.recv(*args, **kwargs)
+
 
 class COM_I2C(COM_SERIAL):
 
     MULTIPLEBYTE_CMD = 0x80
 
-    def __init__(self, communication, dev_selector, addr_size, msb_first):
+    def __init__(self, communication, dev_selector, 
+                       addr_size, msb_first, 
+                       multi_byte_support = True):
         super().__init__(communication, dev_selector,
                          addr_size, msb_first)
         self.id = "I2C @ 0x%02x" % self.selector
+        self._mb_sup = multi_byte_support
 
     def set_multi_byte(self, addr):
         return (addr | self.MULTIPLEBYTE_CMD)
 
     def read_binary(self, reg_addr, byte_cnt):
-        if byte_cnt > 1:
+        if (byte_cnt > 1) and self._mb_sup:
             reg_addr = self.set_multi_byte(reg_addr)
         ans = self.com.mem_read(data=byte_cnt, addr=self.selector,
                                 memaddr=reg_addr, addr_size=self.addr_size)

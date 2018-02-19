@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
-import sys
-sys.path.append("../..")
-import unittest
-from rpc.mp_server import SerDes
 import json
-from common.datalink import Datalink
-from rpc.pyb import dl_com
-import time
+import unittest
+from micropython_lib.rpc.serdes_json import SerDes
+from micropython_lib.common.datalink import Datalink
+from micropython_lib.rpc.pyb import dl_com
 
-class TestSerDes(unittest.TestCase):
+class TestJsonSerDes(unittest.TestCase):
     
     def setUp(self):
         self.serdes = SerDes()
@@ -16,6 +13,9 @@ class TestSerDes(unittest.TestCase):
     def teardown(self):
         pass
         
+    #
+    # Test request object
+    #
     def test_req2j_no_data(self):
         methodName = "Blabla"
         req_id, res = self.serdes.req_to_data("Blabla")
@@ -69,6 +69,16 @@ class TestSerDes(unittest.TestCase):
         self.assertIsInstance(jres['params'], list)
         for exp, opt  in zip(value, jres['params']):
             self.assertEqual(exp, opt)
+            
+    def test_req2j_object(self):
+        class simple:
+            def __init__(self):
+                pass
+        inst = simple()
+        res = self.serdes.resp_to_data(inst)
+        self.assertIsNone(res)        
+        
+        
     #
     # Test responce to data conversion
     #

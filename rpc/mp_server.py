@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 
-class RPC_SRV:
+from micropython_lib.rpc.serdes_json import SerDes
+
+
+class RPC_Server:
     
     EXCLUDE = ("register", "start")
     
-    def __init__(self, dl):
+    def __init__(self, dl, serdes):
         self._dl=dl
-        self._serdes = SerDes()
+        self._serdes = serdes
         self._objects=self._getmembers(self)
+        self._handle_idx = 0
+        self._lobj_inst = {}
         
     def _getmembers(self, obj):
         res = {}
@@ -28,11 +33,29 @@ class RPC_SRV:
             res[name]=val
         return res
     
+    def _get_object_handle(self, lobj):
+        message={'code':-32000, 'message':"Object created", 'data':self._handle_idx}
+        self._lobj_inst[self._handle_idx] = lobj
+        self._handle_idx +=1
+        return message   
+    
     def _write(self, data):
         self._dl.write(data)
         
     def _read(self):
         return self._dl.read_str()
+    
+    def _check_result(self, result, error):
+        if result is None:
+            return result, error
+        elif isinstance(result, (int, str, float)):
+            return result, error
+        elif isinstance(result, (list, tuple, dict)):
+            # ToDo replace references to object s by handle
+            error = {'code':-32603, 'message':"Internal error", 'data':None}
+            return None, error
+        message=self._setup_object_handle(result)
+        return None, message
     
     def get_objects(self):
         return tuple(self._objects.keys())
@@ -63,6 +86,7 @@ class RPC_SRV:
                     error={'code':-32601, 'message':"Method not found", 'data':None}
             else:
                 error={'code':-32700, 'message':"Parse error", 'data':None}
+            result, error = self._check_result(result, error)
             data = self._serdes.resp_to_data(req_id, result=result, error=error)
             print("Send back: \"%s\"" % (data))
             self._write(data)
