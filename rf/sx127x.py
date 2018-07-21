@@ -7,7 +7,6 @@ https://github.com/mayeranalytics/pySX127x.git
 and micropytonized.
 '''
 from i2cspi import COM_SPI
-from modem import RADIO_IF, ModemException
 from multibyte import multibyte
 from sx127x_const import *
 import pyb
@@ -62,6 +61,11 @@ FSK_BANDWIDTH = (
     ( 300000, 0x00 ), # Invalid Badwidth
 )
 
+
+class ModemException(Exception):
+    pass
+
+
 ################################################## Some utility functions ##############################################
 
 def set_bit(value, index, new_bit):
@@ -109,28 +113,32 @@ def setter(register_address):
 
 ############################################### Definition of the SX127X class ###########################################
 
-class SX127X(COM_SPI, RADIO_IF, multibyte):
+class SX127X(COM_SPI, multibyte):
 
     WHO_IAM_REG = 0x42
     WHO_IAM_ANSWER = 0x12
 
     MODE = {'SLEEP': 0x00, 'STDBY':0x01, 'FSTX':0x02, 'TX':0x03, 'FSRX':0x04, 'RX':0x05}
 
+    READ_CMD = 0x00
+    WRITE_CMD = 0x80
+    MULTIPLEBYTE_CMD = 0x00
+
     DEFAULT_CONF = (
-        [REG.FSK.LNA            , 0x23],
-        [REG.FSK.RX_CONFIG      , 0x1E],
-        [REG.FSK.RSSI_CONFIG    , 0xD2],
-        [REG.FSK.PREAMBLE_DETECT, 0xAA],
-        [REG.FSK.OSC            , 0x07],
-        [REG.FSK.SYNC_CONFIG    , 0x12],
-        [REG.FSK.SYNC_VALUE_1   , 0xC1],
-        [REG.FSK.SYNC_VALUE_2   , 0x94],
-        [REG.FSK.SYNC_VALUE_3   , 0xC1],
-        [REG.FSK.PACKET_CONFIG_1, 0xD8],
-        [REG.FSK.FIFO_THRESH    , 0x8F],
-        [REG.FSK.IMAGE_CAL      , 0x02],
-        [REG.FSK.DIO_MAPPING_1  , 0x00],
-        [REG.FSK.DIO_MAPPING_2  , 0x30]
+        [REG.FSK_OOK.LNA            , 0x23],
+        [REG.FSK_OOK.RX_CONFIG      , 0x1E],
+        [REG.FSK_OOK.RSSI_CONFIG    , 0xD2],
+        [REG.FSK_OOK.PREAMBLE_DETECT, 0xAA],
+        [REG.FSK_OOK.OSC            , 0x07],
+        [REG.FSK_OOK.SYNC_CONFIG    , 0x12],
+        [REG.FSK_OOK.SYNC_VALUE_1   , 0xC1],
+        [REG.FSK_OOK.SYNC_VALUE_2   , 0x94],
+        [REG.FSK_OOK.SYNC_VALUE_3   , 0xC1],
+        [REG.FSK_OOK.PACKET_CONFIG_1, 0xD8],
+        [REG.FSK_OOK.FIFO_THRESH    , 0x8F],
+        [REG.FSK_OOK.IMAGE_CAL      , 0x02],
+        [REG.FSK_OOK.DIO_MAPPING_1  , 0x00],
+        [REG.FSK_OOK.DIO_MAPPING_2  , 0x30]
     )
 
     def __init__(self, communication, dev_selector, reset_pin, dio_pins, verbose = False, xtal_freq=32000000):
@@ -139,10 +147,14 @@ class SX127X(COM_SPI, RADIO_IF, multibyte):
                          addr_size=self.ADDR_MODE_8,
                          msb_first=self.TRANSFER_MSB_FIRST)
         self.__freq_band = 868
+        self.__freq_step = 5000.0/0x52 # FRom default value in reg 0x05
         self.__calib_ch = 17 if self.__freq_band == 868 else 05
         self.__xtal_freq = xtal_freq
         # reset devices
         self.__reset_pin = reset_pin
+        self.set_up()
+        
+    def set_up(self):
         self.reset()
         self.rx_chain_calib()
         self.set_op_mode('SLEEP')
@@ -154,7 +166,7 @@ class SX127X(COM_SPI, RADIO_IF, multibyte):
 
     def reset(self):
         self.__reset_pin.low()
-        pyb.delay(1)
+        pyb.delay(2)
         self.__reset_pin.high()
         pyb.delay(6)
 
@@ -169,11 +181,12 @@ class SX127X(COM_SPI, RADIO_IF, multibyte):
     def set_op_mode(self, mode):
         MODULATION_MASK=0xE0
         MODE_MASK = 0x07
-        if mode in ('FSK','OOK', 'LORA'):
+        mod_mode={'FSK':0x20,'OOK':0x00, 'LORA':0x80}
+        if mode in mod_mode:
             val = self.read_u8(REG.LORA.OP_MODE)
             cMode = val & MODE_MASK
             val &= ~(MODULATION_MASK | MODE_MASK)
-            val |= 0x00 if mode=='OOK' else 0x20 if mode=='FSK' else 0x80
+            val |= mod_mode[mode]
             self.write_u8(REG.LORA.OP_MODE, val)
             val |= cMode
             self.write_u8(REG.LORA.OP_MODE, val)
@@ -188,9 +201,9 @@ class SX127X(COM_SPI, RADIO_IF, multibyte):
             raise ModemException("Unknown mode %s" % mode)
 
     def start_calib(self):
-        val = self.read_u8(REG.FSK.IMAGE_CAL)
+        val = self.read_u8(REG.FSK_OOK.IMAGE_CAL)
         val |= CALIBRATE.MODE.start
-        self.write_u8(REG.FSK.IMAGE_CAL, val)
+        self.write_u8(REG.FSK_OOK.IMAGE_CAL, val)
 
     def rx_chain_calib(self):
         # Goto standby
@@ -202,8 +215,8 @@ class SX127X(COM_SPI, RADIO_IF, multibyte):
         self.set_pa(0,0,0)
         self.start_calib()
         self.set_channel(self.__calib_ch)
-        while self.read_u8(REG.FSK.IMAGE_CAL) & CALIBRATE.MODE.running == CALIBRATE.MODE.running:
-            pyb.sleep(1)
+        while self.read_u8(REG.FSK_OOK.IMAGE_CAL) & CALIBRATE.MODE.running == CALIBRATE.MODE.running:
+            pyb.delay(1)
         # Restore configuratiuon
         self.write_u8(REG.LORA.PA_CONFIG, pa_conf)
         self.set_channel(ch_conf)
@@ -232,9 +245,23 @@ class SX127X(COM_SPI, RADIO_IF, multibyte):
                 self.MODULATION_OOK|self.MODULATION_LORA)
 
 
-    def set_data_rate(self, datarate):
+    def data_rate(self, datarate=None):
+        if datarate is None:
+            val = self.read_u16_r(REG.FSK_OOK.BIT_RATE_MSB)
+            val = self.__xtal_freq/val if val>0 else 0
+            return val
         val = int(round(float(self.__xtal_freq)/datarate))
-        self.write_u16_r(REG_BITRATEMSB, val)
+        val = 1<<16-1 if val>1<<16 else val
+        self.write_u16(REG.FSK_OOK.BIT_RATE_MSB, val)
+
+    def freq_dev(self, freq_dev_Hz=None):
+        if freq_dev_Hz is None:
+            val = self.read_u16_r(REG.FSK_OOK.FREQ_DEV_MSB)
+            val *= self.__freq_step
+            return val
+        val = int(round(float(freq_dev_Hz)/self.__freq_step))
+        val = 1<<16-1 if val>1<<16 else val
+        self.write_u16_r(REG.FSK_OOK.FREQ_DEV_MSB, val)
 
     def get_fsk_bandwidth_reg_value(self, bw):
         idx_len = len(FSK_BANDWIDTH)-1
@@ -257,7 +284,7 @@ class SX127X(COM_SPI, RADIO_IF, multibyte):
     def set_fsk_preamble_length(self, length):
         self.write_u16_r(REG_PREAMBLEMSB, length)
 
-    def set_payload_length(slef, fix_length, length):
+    def set_payload_length(self, fix_length, length):
         if fix_length:
             value = 1
         else:

@@ -14,6 +14,7 @@
 """
 import struct
 from time import sleep
+import logging
 
 class Datalink:
     
@@ -29,7 +30,9 @@ class Datalink:
         'DATA': 48,
         'CONTROL':49,
         }
-    
+
+    CRC_SIZE = 3
+
     STATES = {'ACK': 0, 'NACK': 128 }
     
     ESC = 0x1B
@@ -47,6 +50,7 @@ class Datalink:
                    be retry_cnt*Timeout_on_phy
         debug: Either True or False: Output debug information.
         '''
+        self._log = logging.getLogger("Datalink")
         self.retry_cnt =retry_cnt
         self._baudrate = baudrate
         self.DEBUG = debug        
@@ -59,6 +63,8 @@ class Datalink:
             self.ESC_MAP[v] = (0x1B, 0x30+i)
             self.REV_ESC_MAP[0x30+i] = v
         self.raw_data = b''
+        if self.DEBUG:
+            self._log.debug("Created")
 
     def add_to_crc(self, byte, crc):
         b2 = byte
@@ -146,28 +152,24 @@ class Datalink:
         packet_type = None
         unparsed_data = b''
         if self.DEBUG:
-            print("Scan data of lenght %d" % (len(data)))
+            self._log.debug("Scan data of lenght %d" % (len(data)))
         for idx, character in enumerate(data):
+            log_start=""
             if self.DEBUG:
                 pchr = '%s' % chr(character) if 32<=character<127 else '.'
-                print("CHAR 0x%02x (%s)" % ( character,  pchr), end="")
+                log_start = "CHAR 0x%02x (%s)" % ( character,  pchr)
             if character == self.ESCAPE['SOF']:
                 sof_detected = True
                 if self.DEBUG:
-                    print("  ==> SOF" )
+                    self._log.debug("%s  ==> SOF" % (log_start) )
                 continue
             if not sof_detected:
                 if self.DEBUG:
-                    print("  ==> SKIP" )
-                continue
-            if packet_type is None:
-                if self.DEBUG:
-                    print("  ==> PACKET Type 0x%02x" % character )
-                packet_type = character
+                    self._log.debug("%s  ==> SKIP" % (log_start)  )
                 continue
             if character == self.ESCAPE['EOF']:
                 if self.DEBUG:
-                    print("  ==> EOF Datasize %d" % len(res))
+                    self._log.debug("%s  ==> EOF Datasize %d" % (log_start, len(res)))
                 if len(res) < 2:
                     data_str = ", ".join(["0x%02x" % d for d in res ])
                     raise Exception("Data (%s) too short" % data_str)
@@ -175,38 +177,37 @@ class Datalink:
                 remote_crc = res[-1]
                 my_crc=self.crc(res[:-1])
                 if self.DEBUG:
-                    print("  ==> Check CRC: 0x%02x == 0x%02x (%s)" 
-                          %(my_crc, remote_crc, 
+                    self._log.debug("%s  ==> Check CRC: 0x%02x == 0x%02x (%s)"
+                          %(log_start, my_crc, remote_crc,
                             "OK" if my_crc == remote_crc else "FAIL") )
                 if my_crc != remote_crc:
                     if self.DEBUG:
-                        print("  ==> CRC Does not match")
+                        self._log.debug("%s  ==> CRCs Do not match" % (log_start))
                     if packet_type == self.PACKET_TYPE['DATA']:
                         if self.DEBUG:
-                            print("  ==> CRC for data does not match: NACK") 
+                            self._log.debug("%s  ==> CRC for data does not match: NACK" % (log_start)) 
                         self.send_state('NACK')
                     return None, None, unparsed_data
                 if packet_type == self.PACKET_TYPE['DATA']:
                     if self.DEBUG:
-                        print("  Send ACK")
+                        self._log.debug("%s  Send ACK" % (log_start))
                     self.send_state('ACK')
                 result = res[:-1] # Remove CRC
                 break
             if is_escape:
                 res.append(self.REV_ESC_MAP[character])
                 if self.DEBUG:
-                    print("  ==> Escape 0x%02x 0x%02x ==> 0x%02x" % (self.ESC ,character, res[-1]))
+                    self._log.debug("%s  ==> Escape 0x%02x 0x%02x ==> 0x%02x" % (log_start, self.ESC ,character, res[-1]))
                 is_escape = False
                 continue
             else:
                 if character == self.ESC:
                     if self.DEBUG:
-                        print("  ==> ESCAPE (0x%02x)" % (self.ESC))
-                    is_escape = True
+                        self._log.debug("%s  ==> ESCAPE (0x%02x)" % (log_start, self.ESC))
                     continue
                 else:
                     if self.DEBUG:
-                        print("  ==> Data(0x%02x)" % (character))
+                        self._log.debug("%s  ==> Data(0x%02x)" % (log_start, character))
                     res.append(character)
                     continue
         if result is  None:
@@ -219,22 +220,28 @@ class Datalink:
         ''' Read data form the communication interface
         '''
         sleep_step_s = 0.005
+        timeout= max(timeout, sleep_step_s)
         packet_type = None
         result = None
         wait_time_s = 0
         while wait_time_s < timeout:
+            new_data = b''
             while self.__phy.any():
-                self.raw_data += self.__phy.read()
-            if len(self.raw_data) == 0:
+                new_data += self.__phy.read()
+                if self.DEBUG and new_data is not None:
+                    self._log.debug("New data %s" % (new_data))
+            if new_data is None or len(new_data) == 0:
                 sleep(sleep_step_s)
                 wait_time_s += sleep_step_s
                 continue
-            packet_type,  result, self.raw_data = self.scan_raw_data(self.raw_data)
+            else:
+                self.raw_data += new_data
+            	packet_type,  result, self.raw_data = self.scan_raw_data(self.raw_data)
             if packet_type is not None:
                 break
         if self.DEBUG and result is not None:
-            print("Received %s : %s (wait %f s)" % (str(packet_type),  result, wait_time_s))
-        return packet_type, result
+            self._log.debug("Received: %s (wait %f s)" % (bytearray(result), wait_time_s))
+       return packet_type, result
     
     
     def read(self):

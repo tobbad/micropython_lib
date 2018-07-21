@@ -180,7 +180,11 @@ class REG:
         PLL                = 0x70
 
     @add_lookup
-    class FSK:
+    class FSK_OOK:
+        BIT_RATE_MSB       = 0x02
+        BIT_RATE_LSB       = 0x03
+        FREQ_DEV_MSB       = 0x04
+        FREQ_DEV_LSB       = 0x05
         LNA                = 0x0C
         RX_CONFIG          = 0x0D
         RSSI_CONFIG        = 0x0E

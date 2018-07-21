@@ -5,6 +5,8 @@ import pyb
 
 config = {
     'stlink_uart':{'uart':2},
+    'arduino_uart':{'uart':3},
+    'arduino_spi':{'spi_bus':1, 'spi_cs':'PB6',  'resetPin':'PC7'},
     'switch':{'pin':'C13', 
               'name':'btn',
               'mode':pyb.Pin.IN,

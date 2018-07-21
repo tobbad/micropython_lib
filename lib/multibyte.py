@@ -53,15 +53,18 @@ class multibyte():
     def read_u32(self, addr):
         return self.__read(addr, 4)
 
+    def read_u32_r(self, addr):
+        return self.__read(addr, 4, lsb_first=False)
+
     def read_s32(self, addr):
         return self.__read(addr, 4, signed=True)
 
-    def __write(self, addr, value, cnt, lsb_first=True):
+    def __write(self, addr, value, cnt, msb_first=False):
         data = []
         for i in range(cnt):
             data.append(value & 0xFF)
             value >>= 8
-        if not lsb_first:
+        if msb_first:
             data.reverse()
         for a, v in zip(range(addr, addr+cnt), data):
             self.write_u8(a, v)
@@ -75,12 +78,14 @@ class multibyte():
         self.write_binary(addr, data)
 
     def write_u16(self, addr, value):
-        data = struct.pack(">H", value)
-        self.write_binary(addr, data)
-
-    def write_u16_r(self, addr, value):
         data = struct.pack("<H", value)
+        print("u16   0x%04x" % value, "[ 0x%02x" % data[0], "0x%02x ]"% data[1])
         self.write_binary(addr, data)
 
-    def write_u24_r(self, addr, value):
-        self.__write(addr, value, 3, lsb_first=False)
+    def write_u16_m(self, addr, value):
+        data = struct.pack(">H", value)
+        print("u16_m 0x%04x" % value, "[ 0x%02x" % data[0], "0x%02x ]"% data[1])
+        self.write_binary(addr, data)
+
+    def write_u24_m(self, addr, value):
+        self.__write(addr, value, 3, msb_first=True)

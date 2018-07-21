@@ -6,7 +6,7 @@ and maybe useable on other boards (STM32L496GDISCO?)
 from i2cspi import COM_I2C
 from multibyte import multibyte
 import time
-from board import 
+from board import IDD_DEFAULT
 from mfx_const import *
 
 class MFX(COM_I2C, multibyte):
@@ -58,7 +58,7 @@ class MFX(COM_I2C, multibyte):
         self.write(REG_ADR_IDD_CTRL, value)
 
         # Idd pre delay configuration: unit and value
-        value = (self._config.PreDelayUnit & IDD_PREDELAY_UNIT) |
+        value = (self._config.PreDelayUnit & IDD_PREDELAY_UNIT) | \
                 (self._config.PreDelayValue & IDD_PREDELAY_VALUE)
         self.write(REG_ADR_IDD_PRE_DELAY, value)
 
@@ -129,7 +129,7 @@ class MFX(COM_I2C, multibyte):
         self.write(REG_ADR_IDD_NBR_OF_MEAS, value)
 
         # Idd delta delay configuration: unit and value 
-        value = (self._config.DeltaDelayUnit & IDD_DELTADELAY_UNIT) |
+        value = (self._config.DeltaDelayUnit & IDD_DELTADELAY_UNIT) |\
                 (self._config.DeltaDelayValue & IDD_DELTADELAY_VALUE)
         self.write(REG_ADR_IDD_MEAS_DELTA_DELAY, value)
 

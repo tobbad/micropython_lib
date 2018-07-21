@@ -3,16 +3,16 @@
 #
 import pyb
 
-sys_config = {
+config = {
     'stlink_uart':{'uart':1},
     'lis302dl': {'spi_bus': 1, 'spi_cs': 'PE3'},
     'cs43l22': {'i2c_bus': 1, 'i2c_addr': 0x4A, 'resetPin': 'PD4'},
-    'lora':{'spi_bus':1, 'spi_cs':'PB11',  'resetPin':'PD4'},
+    'rf96':{'spi_bus':1, 'spi_cs':'PB11',  'resetPin':'PD4', 'DIO_0':'PB12', 'DIO_1':'PB13', 'DIO_2':'PB0', 'DIO_3':'PB15', 'spi_polarity':0 , 'spi_phase':0 },
     'switch':{'pins':['PB7','PE3','PC11','PD6'], 'conf':[(pyb.Pin.IN, pyb.Pin.PULL_UP),(pyb.Pin.IN, pyb.Pin.PULL_UP),(pyb.Pin.IN, pyb.Pin.PULL_UP),(pyb.Pin.IN, pyb.Pin.PULL_UP)]},
-    'led':{'pins':['PC13','PC15'] },
+    'led':{'pins':['PD12','PD13','PD14','PD15',], 'tim_ch':((4,1),(4,2),(4,3),(4,4)) },
+    'led_ex':{'pins':['PC13','PC15'] },
     'sdcard':{'spi_bus':3, 'spi_cs':'PB8'},
-    'ads7843':{'spi_bus':3, 'spi_cs':'PE2', 'busy':'PD7', 'irq':'PA8'},
-    'ads7843':{'spi_bus':3, 'spi_cs':'PE2', 'busy':'PD7'}, # Touch panel controller
+    'ads7843':{'spi_bus':3, 'spi_cs':'PE2', 'busy':'PD7', 'irq':'PA8'}, # Touch panel controller
     'ssd1289':{'data':['PD0', 'PD1', 'PD2', 'PD3', 'PE4', 'PE5', 'PE6', 'PE7', 'PE8', 'PE9', 'PE10', 'PE11', 'PE12', 'PE13', 'PE14', 'PE15', 'PE16'],
                'wr':'PC2',
                'rd':'PC1',
