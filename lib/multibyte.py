@@ -82,10 +82,10 @@ class multibyte():
         print("u16   0x%04x" % value, "[ 0x%02x" % data[0], "0x%02x ]"% data[1])
         self.write_binary(addr, data)
 
-    def write_u16_m(self, addr, value):
+    def write_u16_r(self, addr, value):
         data = struct.pack(">H", value)
         print("u16_m 0x%04x" % value, "[ 0x%02x" % data[0], "0x%02x ]"% data[1])
         self.write_binary(addr, data)
 
-    def write_u24_m(self, addr, value):
+    def write_u24_r(self, addr, value):
         self.__write(addr, value, 3, msb_first=True)

@@ -45,5 +45,6 @@ elif conf==2:
     callback= uart.irq()
     callback()    # call the callback
     print("Trigger flag %d " % uart.irq().trigger()) # Print active set triggers
-
+    # Enable IRQ
+    uart.irq().enable()
     

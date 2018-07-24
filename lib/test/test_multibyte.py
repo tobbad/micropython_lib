@@ -117,12 +117,11 @@ class CHECK_WRITE(unittest.TestCase):
         self.dut.write_u16(0, exp_val)
         self.dut.write_binary.assert_called_once_with(0, line_val)
 
-    def test_write_u16_m(self):
+    def test_write_u16_r(self):
         exp_val = 0x12*256+0x34
         line_val = struct.pack('H', 0x12+0x34*256)
         lvstr="["+ ", ".join(["0x%02x" %i for i in line_val[::-1]]) + "]"
-        print(lvstr)
-        self.dut.write_u16_m(0, exp_val)
+        self.dut.write_u16_r(0, exp_val)
         self.dut.write_binary.assert_called_once_with(0, line_val)
 
 

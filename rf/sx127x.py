@@ -252,7 +252,7 @@ class SX127X(COM_SPI, multibyte):
             return val
         val = int(round(float(self.__xtal_freq)/datarate))
         val = 1<<16-1 if val>1<<16 else val
-        self.write_u16(REG.FSK_OOK.BIT_RATE_MSB, val)
+        self.write_u16_r(REG.FSK_OOK.BIT_RATE_MSB, val)
 
     def freq_dev(self, freq_dev_Hz=None):
         if freq_dev_Hz is None:

@@ -25,7 +25,7 @@ elif [ $TRGT == 3 ]
 then
     cp ${ROOT}/shields/dragino_LoRa_1_3.py ${TARGET}/
     cp ${ROOT}/rf/sx127x_const.py ${TARGET}/
-    cp ${ROOT}/rf/sx127x.py ${TARGET}/
+    cp ${ROOT}/rf/sx127x_a.py ${TARGET}/sx127x.py
     cp main_lora.py ${TARGET}/main.py
 fi
 

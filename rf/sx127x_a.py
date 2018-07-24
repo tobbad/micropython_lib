@@ -87,6 +87,10 @@ class SX127X(COM_SPI, multibyte):
     dio_mapping = [None] * 6          # store the dio mapping here
     __register = dict()
 
+    READ_CMD = 0x00
+    WRITE_CMD = 0x80
+    MULTIPLEBYTE_CMD = 0x00
+
     def __init__(self, communication, dev_selector, reset_pin,
                  dio_pin, verbose=True, do_calibration=True,
                  calibration_freq=868):
@@ -123,20 +127,20 @@ class SX127X(COM_SPI, multibyte):
     def fsk_setup(self):
         # the FSK registers are set up exactly as modtronix do it:
         lookup_fsk = [
-            [REG.FSK.LNA            , 0x23],
-            [REG.FSK.RX_CONFIG      , 0x1E],
-            [REG.FSK.RSSI_CONFIG    , 0xD2],
-            [REG.FSK.PREAMBLE_DETECT, 0xAA],
-            [REG.FSK.OSC            , 0x07],
-            [REG.FSK.SYNC_CONFIG    , 0x12],
-            [REG.FSK.SYNC_VALUE_1   , 0xC1],
-            [REG.FSK.SYNC_VALUE_2   , 0x94],
-            [REG.FSK.SYNC_VALUE_3   , 0xC1],
-            [REG.FSK.PACKET_CONFIG_1, 0xD8],
-            [REG.FSK.FIFO_THRESH    , 0x8F],
-            [REG.FSK.IMAGE_CAL      , 0x02],
-            [REG.FSK.DIO_MAPPING_1  , 0x00],
-            [REG.FSK.DIO_MAPPING_2  , 0x30]
+            [REG.FSK_OOK.LNA            , 0x23],
+            [REG.FSK_OOK.RX_CONFIG      , 0x1E],
+            [REG.FSK_OOK.RSSI_CONFIG    , 0xD2],
+            [REG.FSK_OOK.PREAMBLE_DETECT, 0xAA],
+            [REG.FSK_OOK.OSC            , 0x07],
+            [REG.FSK_OOK.SYNC_CONFIG    , 0x12],
+            [REG.FSK_OOK.SYNC_VALUE_1   , 0xC1],
+            [REG.FSK_OOK.SYNC_VALUE_2   , 0x94],
+            [REG.FSK_OOK.SYNC_VALUE_3   , 0xC1],
+            [REG.FSK_OOK.PACKET_CONFIG_1, 0xD8],
+            [REG.FSK_OOK.FIFO_THRESH    , 0x8F],
+            [REG.FSK_OOK.IMAGE_CAL      , 0x02],
+            [REG.FSK_OOK.DIO_MAPPING_1  , 0x00],
+            [REG.FSK_OOK.DIO_MAPPING_2  , 0x30]
         ]
         self.set_mode(MODE.FSK_STDBY)
         for register_address, value in lookup_fsk:
@@ -854,16 +858,16 @@ class SX127X(COM_SPI, multibyte):
         # cut the PA
         self.set_register(REG.LORA.PA_CONFIG, 0x00)
         # calibration for the LF band
-        image_cal = (self.get_register(REG.FSK.IMAGE_CAL) & 0xBF) | 0x40
-        self.set_register(REG.FSK.IMAGE_CAL, image_cal)
-        while (self.get_register(REG.FSK.IMAGE_CAL) & 0x20) == 0x20:
+        image_cal = (self.get_register(REG.FSK_OOK.IMAGE_CAL) & 0xBF) | 0x40
+        self.set_register(REG.FSK_OOK.IMAGE_CAL, image_cal)
+        while (self.get_register(REG.FSK_OOK.IMAGE_CAL) & 0x20) == 0x20:
             pass
         # Set a Frequency in HF band
         self.set_freq(freq)
         # calibration for the HF band
-        image_cal = (self.get_register(REG.FSK.IMAGE_CAL) & 0xBF) | 0x40
-        self.set_register(REG.FSK.IMAGE_CAL, image_cal)
-        while (self.get_register(REG.FSK.IMAGE_CAL) & 0x20) == 0x20:
+        image_cal = (self.get_register(REG.FSK_OOK.IMAGE_CAL) & 0xBF) | 0x40
+        self.set_register(REG.FSK_OOK.IMAGE_CAL, image_cal)
+        while (self.get_register(REG.FSK_OOK.IMAGE_CAL) & 0x20) == 0x20:
             pass
         # put back the saved parameters
         self.set_mode(op_mode_bkup)
@@ -914,7 +918,7 @@ class SX127X(COM_SPI, multibyte):
                 if k == 'addr':
                     continue
                 if (k in data) and (data[k] is not None):
-                    mask = ((1 << v[1])-1)
+                    mask = ((1 << v[1])-1) << v[0]
                     newVal = (data[k] << v[0]) & mask
                     val &= ~mask
                     val |= newVal
