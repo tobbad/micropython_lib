@@ -1,8 +1,8 @@
 
 import pyb
 from board import config
-from uart_idle import UART_IDLE 
 from conf import conf
+from time import sleep
 
 
 rp = pyb.Pin('PE3', pyb.Pin.OUT_PP, pyb.Pin.PULL_NONE)
@@ -37,8 +37,9 @@ elif conf==1:
     mfx = MFX(i2c_mfx, config['mfx']['i2c_addr'], wake_up_mfx, conf, irq_mfx)
 elif conf==2:
     #
-    # Test reaction tiome on UART reansfers
+    # Test reaction time on UART transfers
     #
+    from uart_idle import UART_IDLE 
     uart = pyb.UART(2, baudrate = 115200, timeout=1)
     dut=UART_IDLE(uart)
     dut.set_up_cb()
@@ -47,4 +48,12 @@ elif conf==2:
     print("Trigger flag %d " % uart.irq().trigger()) # Print active set triggers
     # Enable IRQ
     uart.irq().enable()
-    
+elif conf == 3:
+    from mgc3x30 import MGC3X30, SW_ADDR
+    reset_pin = pyb.Pin('PA2', pyb.Pin.OUT_PP)
+    transfer_pin = pyb.Pin('PA1', pyb.Pin.PULL_UP)
+    mgc = MGC3X30(reset_pin, transfer_pin, i2c, SW_ADDR )
+    while True:
+        print(mgc.read_binary(0, 26))
+        sleep(1)    
+       

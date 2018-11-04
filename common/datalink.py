@@ -78,10 +78,11 @@ class Datalink:
                 crc ^= self.CRC_QUOTIENT 
         return crc
 
-    def crc(self, data):
+    def crc(self, data, crc=None):
         ''' Calculate CRC from polynom x^8+x^7+x^6+x^4+x^2+1
         '''
-        crc = 0x00
+        if crc is None:
+            crc = 0x00
         for byte in data:
             crc = self.add_to_crc(byte, crc)
         return crc
@@ -100,10 +101,11 @@ class Datalink:
             except:
                 data = bytearray(data)
         res = self.header(packet_type)
+        crc = self.crc(res[1:])
         for item in data:
             val = self.ESC_MAP.get(item, [item,])
             res.extend(val)
-        crc = self.crc(data)
+        crc = self.crc(data, crc)
         res.extend(self.ESC_MAP.get(crc, [crc,]))
         res.append(self.ESCAPE['EOF'])
         fmt = "%dB" % len(res)
