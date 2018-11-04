@@ -13,16 +13,19 @@ import crcmod.predefined
 import struct
 import random
 from micropython_lib.rpc.pyb import dl_com
+import logging, sys
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 
 #@unittest.skip("Skipping control")
 class CHECK_CONTROL(unittest.TestCase):
 
-    DEBUG = False
+    DEBUG = True
 
     def setUp(self):
         self.phy = Phy()
         self.dut = Datalink(self.phy)
+        self.phy.clear()
 
     def test_write_ack(self):
         self.phy.set_ack(self.dut)
@@ -52,6 +55,24 @@ class CHECK_WRITE(unittest.TestCase):
         self.data = [ random.randint(0,255) for i in range(10) ]
         self.dut = Datalink(self.phy)
 
+    def calc_packet_crc(self, payload):
+        packet=[]
+        if self.dut.USE_PACKET_TYPE:
+            packet.append(self.dut.PACKET_TYPE['DATA'])
+        crc = self.dut.crc(packet)
+        payload_esc = []
+        for val in payload:
+            payload_esc.extend(self.dut.ESC_MAP.get(val, [val,]))
+        if self.dut.USE_LENGTH_FIELD:
+            length = len(payload_esc)
+            if self.dut.INCLUDE_HEADER_IN_LENGTH:
+                length += self.dut._header_size
+            packet.append(length)
+            crc.dut.crc([length,], crc)
+        crc = self.dut.crc(payload, crc)
+        packet.extend(payload_esc)
+        return crc
+
     def test_crc_list(self):
         exp = calc_crc(self.data)
         obt = self.dut.crc(self.data)
@@ -67,12 +88,16 @@ class CHECK_WRITE(unittest.TestCase):
             self.dut.write([exp, ])
             res = self.phy.get_written()
             exp_len = 5
-            crc = calc_crc([exp,])
+            packet = [exp,]
+            crc = self.calc_packet_crc(packet)
             if crc in self.dut.ESC_MAP.keys():
                 exp_len+=1
             self.assertEqual(exp_len, len(res))
-            self.assertEqual(res[0], self.dut.ESCAPE['SOF'])
-            self.assertEqual(res[-1], self.dut.ESCAPE['EOF'])
+            for idx, val in enumerate(self.dut.ESCAPE['SOF']):
+                self.assertEqual(res[idx], val)
+            for idx, val in enumerate(self.dut.ESCAPE['EOF']):
+                ridx = len(self.dut.ESCAPE['EOF'])
+                self.assertEqual(res[-(ridx+idx)], val)
             for e,o in zip([self.dut.PACKET_TYPE['DATA'], exp, ], res[1:-1]):
                 self.assertEqual(e, o)
 
@@ -82,15 +107,18 @@ class CHECK_WRITE(unittest.TestCase):
             self.dut.write([esc, ])
             res = self.phy.get_written()
             exp_len = 6
-            crc = calc_crc([esc,])
+            crc = self.calc_packet_crc([esc,])
             if crc in self.dut.ESC_MAP.keys():
                 exp_len+=1
             self.assertEqual(exp_len, len(res))
-            self.assertEqual(res[0], self.dut.ESCAPE['SOF'])
+            for idx,v in enumerate(self.dut.ESCAPE['SOF']):
+                self.assertEqual(res[0+idx], self.dut.ESCAPE['SOF'][idx])
             self.assertEqual(res[1], self.dut.PACKET_TYPE['DATA'])
             self.assertEqual(res[2], val[0])
             self.assertEqual(res[3], val[1])
-            self.assertEqual(res[-1], self.dut.ESCAPE['EOF'])
+            eof_idx=len(res)-len(self.dut.ESCAPE['EOF'])
+            for idx,v in enumerate(self.dut.ESCAPE['EOF']):
+                self.assertEqual(res[eof_idx+idx], self.dut.ESCAPE['EOF'][idx])
 
     def test_write_no_answer(self):
         val = 42
@@ -202,6 +230,7 @@ class CHECK_READ(unittest.TestCase):
         #self.phy.set_ack(self.dut)
         self.dut.echo()
 
+@unittest.skip("Skipping remote")
 class Test_Remote(unittest.TestCase):
 
     SER_DEV='/dev/ttyACM0'

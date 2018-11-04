@@ -41,11 +41,19 @@ class Phy:
         self.any_check_cnt = 0
 
     def set_state(self, dut, state):
-        res = [Datalink.ESCAPE['SOF'], Datalink.PACKET_TYPE['CONTROL'], Datalink.STATES[state]]
-        crc = calc_crc([dut.STATES[state],])
+        res = Datalink.ESCAPE['SOF'][:]
+        if dut.USE_PACKET_TYPE:
+            res.append(Datalink.PACKET_TYPE['CONTROL'])
+        if dut.USE_LENGTH_FIELD:
+            length = 1
+            if dut.INCLUDE_HEADER_IN_LENGTH:
+                length += dut._header_size
+            res.append(length)            
+        res.append(Datalink.STATES[state])
+        crc = calc_crc(res[len(Datalink.ESCAPE['SOF']):])
         crc = dut.ESC_MAP.get(crc, [crc,])
         res.extend(crc)
-        res.append(Datalink.ESCAPE['EOF'])
+        res.extend(Datalink.ESCAPE['EOF'])
         self.set_readable(res)
 
     def set_ack(self, dut):

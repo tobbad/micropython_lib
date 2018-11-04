@@ -5,10 +5,12 @@
     Created on 8.7.2016
     
     Packet looks as follows:
-    | Start of Frame byte [0x01] | packet_type byte [One of Datalink.PACKET_TYPE] | data* N bytes | CRC 1 byte|
+    | Start of Frame byte(s) [...] | packet_type byte [One of Datalink.PACKET_TYPE]| PACKET_LENGTH | data* N bytes | CRC 1 byte|
+    Packet type, Packe Length CRC and EOF si optional. 
+    Escape is optional and only done when a ESC enbtry is given by the ESCAPE dictionary
     packet_type is NOT escaped by the Datalink.ESCAPE characters.
     Datafield is escaped to not contain one of the Datalink.ESCAPE characters.
-    CRC is calculated over packet_type AND data fields.
+    CRC is calculated over full header and data fields.
     
     @author: Tobias Badertscher
 """
@@ -21,9 +23,9 @@ class Datalink:
     DEBUG = False
     
     ESCAPE = {
-        'SOF': 0x01,
-        'EOF': 0x04,
-        'ESC': 0x1B,
+        'SOF': [0x01,],
+        'EOF': [0x04,], # Only 1 entry currently supported
+        'ESC': [0x1B,], # Only allowed to have 1 entry!
     }
     
     PACKET_TYPE = {
@@ -31,12 +33,13 @@ class Datalink:
         'CONTROL':49,
         }
 
-    CRC_SIZE = 3
-
     STATES = {'ACK': 0, 'NACK': 128 }
     
-    ESC = 0x1B
-
+    USE_CRC = True
+    USE_PACKET_TYPE = True
+    USE_LENGTH_FIELD = False
+    INCLUDE_HEADER_IN_LENGTH = True
+    
     CRC_QUOTIENT = 0xD9     # This is the quotient for CRC-8 WCDMA 
     
     def __init__(self,  phy, retry_cnt=5, baudrate=115200, debug=False):
@@ -57,11 +60,17 @@ class Datalink:
         self.__phy = phy
         self.REV_ESC_MAP={}
         self.ESC_MAP={}
-        val = [ i for i in self.ESCAPE.values()]
-        val.sort()
-        for i, v in enumerate(val):
-            self.ESC_MAP[v] = (0x1B, 0x30+i)
-            self.REV_ESC_MAP[0x30+i] = v
+        self._header_size = len(self.ESCAPE['SOF'])
+        self._header_size += 1 if self.USE_PACKET_TYPE else 0
+        self._header_size += 1 if self.USE_LENGTH_FIELD else 0
+        if 'ESC' in self.ESCAPE:
+            val = []
+            for i in self.ESCAPE.values():
+                val.extend(i)
+            val.sort()
+            for i, v in enumerate(val):
+                self.ESC_MAP[v] = (0x1B, 0x30+i)
+                self.REV_ESC_MAP[0x30+i] = v
         self.raw_data = b''
         if self.DEBUG:
             self._log.debug("Created")
@@ -87,10 +96,17 @@ class Datalink:
             crc = self.add_to_crc(byte, crc)
         return crc
     
-    def header(self, packet_type):
+    def header(self, packet_type, payload_size):
         if packet_type not in self.PACKET_TYPE:
             raise ValueError("Unknown packet type %d" % packet_type)
-        return [self.ESCAPE['SOF'], self.PACKET_TYPE[packet_type]]
+        header = self.ESCAPE['SOF'][:]
+        if self.USE_PACKET_TYPE:
+            header.append(self.PACKET_TYPE[packet_type])
+        if self.USE_LENGTH_FIELD:
+            if self.INCLUDE_HEADER_IN_LENGTH:
+                payload_size += self._header_size
+            header.append(payload_size)
+        return header
         
     def write_raw(self, data, packet_type):
         if isinstance(data,  int):
@@ -100,19 +116,28 @@ class Datalink:
                 data = bytearray(data, 'ascii')
             except:
                 data = bytearray(data)
-        res = self.header(packet_type)
-        crc = self.crc(res[1:])
+        if data is None:
+            return 0
+        payload =[]
         for item in data:
             val = self.ESC_MAP.get(item, [item,])
-            res.extend(val)
+            payload.extend(val)
+        packet = self.header(packet_type, len(payload))
+        crc = self.crc(packet[len(self.ESCAPE['SOF']):])
         crc = self.crc(data, crc)
-        res.extend(self.ESC_MAP.get(crc, [crc,]))
-        res.append(self.ESCAPE['EOF'])
-        fmt = "%dB" % len(res)
-        res = struct.pack(fmt,  *res)
-        byte_cnt = self.__phy.write(res)
+        packet.extend(payload)
+        if self.USE_CRC:
+            crc = self.ESC_MAP.get(crc, [crc,])
+            packet.extend(crc)
+        if 'EOF' in self.ESCAPE:
+            packet.extend(self.ESCAPE['EOF'])
+        elif not self.USE_LENGTH_FIELD:
+            raise ValueError("Can not produce package without length and without END OF FRAME (EOF")
+        fmt = "%dB" % len(packet)
+        packet = struct.pack(fmt,  *packet)
+        byte_cnt = self.__phy.write(packet)
         if self.DEBUG:
-            print("Raw written \"%s\"" % (res))
+            self._log.debug("Raw written \"%s\"" % (packet))
         return byte_cnt
         
 
@@ -147,71 +172,102 @@ class Datalink:
         - Do not send any ACK/NACK on control packets
         - Return packet_type, result data and unparsed data.
         '''
+        length_index  = len(self.ESCAPE['SOF'])
+        length_index += (1 if self.USE_PACKET_TYPE else 0)
         res = []
         result = None
         is_escape = False
-        sof_detected = False
+        sof_idx = 0
         packet_type = None
+        type_index = len(self.ESCAPE['SOF']) 
+        exp_pkt_length = 0
+        pkt_index = 0
         unparsed_data = b''
+        end_of_pkt = False
         if self.DEBUG:
             self._log.debug("Scan data of lenght %d" % (len(data)))
         for idx, character in enumerate(data):
             log_start=""
             if self.DEBUG:
                 pchr = '%s' % chr(character) if 32<=character<127 else '.'
-                log_start = "CHAR 0x%02x (%s)" % ( character,  pchr)
-            if character == self.ESCAPE['SOF']:
-                sof_detected = True
+                log_start = "CHAR[%2d] 0x%02x (%s)" % (idx, character,  pchr)
+            if sof_idx < len(self.ESCAPE['SOF']) and \
+               character == self.ESCAPE['SOF'][sof_idx]:
+                pkt_index = sof_idx
                 if self.DEBUG:
-                    self._log.debug("%s  ==> SOF" % (log_start) )
+                    self._log.debug("%s  ==> SOF[%d/%d]" % (log_start, sof_idx, len(self.ESCAPE['SOF'])) )
+                sof_idx += 1
                 continue
-            if not sof_detected:
+            if sof_idx < len(self.ESCAPE['SOF']):
+                sof_idx = 0
                 if self.DEBUG:
                     self._log.debug("%s  ==> SKIP" % (log_start)  )
                 continue
-            if character == self.ESCAPE['EOF']:
-                if self.DEBUG:
-                    self._log.debug("%s  ==> EOF Datasize %d" % (log_start, len(res)))
-                if len(res) < 2:
-                    data_str = ", ".join(["0x%02x" % d for d in res ])
-                    raise Exception("Data (%s) too short" % data_str)
-                unparsed_data = data[idx+1:]
-                remote_crc = res[-1]
-                my_crc=self.crc(res[:-1])
-                if self.DEBUG:
-                    self._log.debug("%s  ==> Check CRC: 0x%02x == 0x%02x (%s)"
-                          %(log_start, my_crc, remote_crc,
-                            "OK" if my_crc == remote_crc else "FAIL") )
-                if my_crc != remote_crc:
-                    if self.DEBUG:
-                        self._log.debug("%s  ==> CRCs Do not match" % (log_start))
-                    if packet_type == self.PACKET_TYPE['DATA']:
-                        if self.DEBUG:
-                            self._log.debug("%s  ==> CRC for data does not match: NACK" % (log_start)) 
-                        self.send_state('NACK')
-                    return None, None, unparsed_data
-                if packet_type == self.PACKET_TYPE['DATA']:
-                    if self.DEBUG:
-                        self._log.debug("%s  Send ACK" % (log_start))
-                    self.send_state('ACK')
-                result = res[:-1] # Remove CRC
-                break
+            pkt_index += 1
+            # End of packet
             if is_escape:
                 res.append(self.REV_ESC_MAP[character])
                 if self.DEBUG:
-                    self._log.debug("%s  ==> Escape 0x%02x 0x%02x ==> 0x%02x" % (log_start, self.ESC ,character, res[-1]))
+                    self._log.debug("%s  ==> Escape 0x%02x 0x%02x ==> 0x%02x" % (log_start, self.ESCAPE['ESC'][0] ,character, res[-1]))
                 is_escape = False
-                continue
             else:
-                if character == self.ESC:
+                if 'ESC' in self.ESCAPE and character == self.ESCAPE['ESC'][0]:
                     if self.DEBUG:
-                        self._log.debug("%s  ==> ESCAPE (0x%02x)" % (log_start, self.ESC))
+                        self._log.debug("%s  ==> ESCAPE (0x%02x)" % (log_start, self.ESCAPE['ESC'][0]))
+                    is_escape = True
                     continue
                 else:
                     if self.DEBUG:
                         self._log.debug("%s  ==> Data(0x%02x)" % (log_start, character))
                     res.append(character)
-                    continue
+            if (self.USE_LENGTH_FIELD is True) and (pkt_index == length_index):
+                exp_pkt_length = res[-1]
+                if not self.INCLUDE_HEADER_IN_LENGTH:
+                    exp_pkt_length += self._header_size
+                if self.DEBUG:
+                    self._log.debug("%s      ==> PACKERLENGTH(0x%02x)" % (log_start, exp_pkt_length))
+            if (self.USE_PACKET_TYPE is True) and (pkt_index == type_index):
+                packet_type = res[-1]
+                if self.DEBUG:
+                    self._log.debug("%s      ==> PACKETTYPE(0x%02x)" % (log_start, packet_type))
+            if ('EOF' in self.ESCAPE) and (character == self.ESCAPE['EOF'][0]):
+                end_of_pkt = True
+                if self.DEBUG:
+                    self._log.debug("%s  ==> REMOVE EOF" % (log_start))
+                res = res[:-1]
+            if (pkt_index == exp_pkt_length):
+                end_of_pkt = True
+            if end_of_pkt:  
+                if self.DEBUG:
+                    self._log.debug("%s  ==> End of Packet %d" % (log_start, len(res)))
+                if len(res) < 2:
+                    data_str = ", ".join(["0x%02x" % d for d in res ])
+                    raise Exception("Data (%s) too short" % data_str)
+                unparsed_data = data[idx+1:]
+                if self.USE_CRC:
+                    remote_crc = res[-1]
+                    my_crc=self.crc(res[:-1])
+                    if self.DEBUG:
+                        self._log.debug("%s  ==> Check CRC: 0x%02x == 0x%02x (%s)"
+                              %(log_start, my_crc, remote_crc,
+                                "OK" if my_crc == remote_crc else "FAIL") )
+                    if my_crc != remote_crc:
+                        if self.DEBUG:
+                            self._log.debug("%s  ==> CRCs Do not match" % (log_start))
+                        if self.USE_PACKET_TYPE  and (packet_type == self.PACKET_TYPE['DATA']):
+                            if self.DEBUG:
+                                self._log.debug("%s  ==> CRC for data does not match: NACK" % (log_start)) 
+                            if 'NACK' in self.STATES:
+                                self.send_state('NACK')
+                        return None, None, unparsed_data
+                if packet_type == self.PACKET_TYPE['DATA']:
+                    if self.DEBUG:
+                        self._log.debug("%s  Send ACK" % (log_start))
+                    if 'ACK' in self.STATES:
+                        self.send_state('ACK')
+                start_idx = self._header_size -len(self.ESCAPE['SOF'])
+                result = res[start_idx:-1] # Remove CRC and header without SOF
+                break
         if result is  None:
             packet_type = None
             unparsed_data = data
@@ -221,7 +277,7 @@ class Datalink:
     def read_raw(self, timeout=1.0):
         ''' Read data form the communication interface
         '''
-        sleep_step_s = 0.005
+        sleep_step_s = timeout/self.retry_cnt
         timeout= max(timeout, sleep_step_s)
         packet_type = None
         result = None
@@ -238,12 +294,14 @@ class Datalink:
                 continue
             else:
                 self.raw_data += new_data
-            	packet_type,  result, self.raw_data = self.scan_raw_data(self.raw_data)
+            packet_type,  result, self.raw_data = self.scan_raw_data(self.raw_data)
             if packet_type is not None:
+                break
+            if result is not None:
                 break
         if self.DEBUG and result is not None:
             self._log.debug("Received: %s (wait %f s)" % (bytearray(result), wait_time_s))
-       return packet_type, result
+        return packet_type, result
     
     
     def read(self):
