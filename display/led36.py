@@ -15,13 +15,14 @@ class led36:
     def __init__(self, addr=LED_ADDR):
         self._addr = addr
         self._i2c = machine.I2C('X')  # select X bus
-        self._i2c.writeto(LED_ADDR, b'\x01') # initialise all LED36 tiles with broadcast address
+        self._doTransfer(b'\x01') # initialise all LED36 tiles with broadcast address
 
     def _doTransfer(self, data, addr=None):
         if addr is None:
             self._i2c.writeto(self._addr, data)
         else:
             self._i2c.writeto(addr, data)
+        time.sleep_ms(10)
 
     def cyc(self, dt=250):
         """ Set all LEDs to black, red, green, yellow, blue, magenta, cayn and white for dt ms
