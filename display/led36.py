@@ -165,7 +165,7 @@ class led36:
         ba[len(pre)] = len(data) & 0xff
         for idx, i in enumerate(data):
             ba[offset+idx] = ord(i)
-        self._doTransfer(ba, addr=1)
+        self._doTransfer(ba, addr=LED_BROADCAST)
 
     def show(self, delay=50):
         while True:
