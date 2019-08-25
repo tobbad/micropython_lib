@@ -40,14 +40,12 @@ elif conf==2:
     # Test reaction time on UART transfers
     #
     from uart_idle import UART_IDLE 
-    uart = pyb.UART(2, baudrate = 115200, timeout=1)
+    uart = pyb.UART(3, baudrate = 115200, timeout=1)
     dut=UART_IDLE(uart)
     dut.set_up_cb()
     callback= uart.irq()
     callback()    # call the callback
-    print("Trigger flag %d " % uart.irq().trigger()) # Print active set triggers
-    # Enable IRQ
-    uart.irq().enable()
+    print("Trigger flag 0x%02x " % uart.irq().trigger()) # Print active set triggers
 elif conf == 3:
     from mgc3x30 import MGC3X30, SW_ADDR
     reset_pin = pyb.Pin('PA2', pyb.Pin.OUT_PP)

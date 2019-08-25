@@ -19,7 +19,8 @@ class UART_IDLE:
         self._uart = uart
         self._uart.write("Hi there\n\r")
         self._buffer = bytearray(64)
-        self._answer = b"Ready \r\n"
+        self._answer_irq = b"Irq \r\n"
+        self._answer = b"Normal \r\n"
         self._normal_context_ref = self.normal_context
         
     def set_up_cb(self):
@@ -27,9 +28,10 @@ class UART_IDLE:
         if UART_IDLE.USE_HARD:
             self._uart.irq(self.irq_idle_callback, flags, UART_IDLE.USE_HARD)
         else:
-            self._uart.irq(self.normal_context, self._uart.IRQ_RX_IDLE, UART_IDLE.USE_HARD)
+            self._uart.irq(self.normal_context, flags, UART_IDLE.USE_HARD)
         
     def irq_idle_callback(self, other):
+        self._uart.write(self._answer_irq)
         micropython.schedule(self._normal_context_ref, 0)
     
     def normal_context(self, value):

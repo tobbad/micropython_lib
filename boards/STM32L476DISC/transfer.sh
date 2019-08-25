@@ -1,7 +1,7 @@
 TARGET=/media/badi/PYBFLASH/
 ROOT=../../
 
-CONF=3
+CONF=2
 
 rm ${TARGET}/*
 cp ${ROOT}/lib/* ${TARGET}

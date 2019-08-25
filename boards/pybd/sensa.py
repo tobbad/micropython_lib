@@ -3,7 +3,7 @@
 
 
 class led:
-     def __init__(self, i2c, addr=64):
+     def __init__(self):
          self._r = Signal('X2', Pin.OUT, value=0, invert=True)
          self._g = Signal('X3', Pin.OUT, value=0, invert=True)
          self._b = Signal('X4', Pin.OUT, value=0, invert=True)
