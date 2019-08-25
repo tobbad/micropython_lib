@@ -1,4 +1,9 @@
- 
+#
+# MicroPython module to control the led36 tile of pybd
+#
+# Credit goes to MicroPython website and marfis:
+# https://forum.micropython.org/viewtopic.php?t=6272
+#
 import time, machine
 
 LED_BROADCAST = 1       # broadcast I2C address
