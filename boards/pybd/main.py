@@ -10,7 +10,11 @@ pon.on()
 time.sleep_ms(20)
 
 tile = led36()
-sense = OPT3001(machine.I2C('X'))
+pyb.Pin('PULL_SCL', pyb.Pin.OUT, value=1) # enable 5.6kOhm X9/SCL pull-up
+pyb.Pin('PULL_SDA', pyb.Pin.OUT, value=1) # enable 5.6kOhm X10/SDA pull-up
+i2cx=machine.I2C('X')
+i2cy=machine.I2C('Y')
+sense = OPT3001(i2cx)
 tile.brightness(100)
 tile.fill_rgb(255,255,255)
 while True:
