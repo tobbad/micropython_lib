@@ -5,7 +5,8 @@ rm -rf ${TARGET}/*
 TRGT=1
 
 cp ${ROOT}/display/led36.py ${TARGET}
-cp ${ROOT}/sensor/lps22hb.py ${TARGET}
+cp ${ROOT}/sensor/lps22hx.py ${TARGET}
+cp ${ROOT}/sensor/lsm9ds1*.py ${TARGET}
 cp ${ROOT}/lib/multibyte.py ${TARGET}
 cp ${ROOT}/lib/i2cspi.py ${TARGET}
 #cp board.py ${TARGET}
